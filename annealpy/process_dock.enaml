@@ -6,3 +6,56 @@
 #
 # The full license is in the file LICENCE, distributed with this software.
 # -----------------------------------------------------------------------------
+from enaml.core.api import Include
+from enaml.layout.api import vbox, hbox, spacer
+from enaml.widgets.api import DockItem, Container, PushButton, FileDialogEx
+
+from .steps import STEPS_WIDGETS
+
+
+def create_steps_widgets(steps):
+    """
+    """
+    pass
+
+
+enamldef ProcessDockItem(DockItem):
+    """Dock item allowing to edit a process.
+
+    """
+    attr process
+
+    closable = False
+
+    func save():
+        if app_state.process.path:
+            app.state.process.save()
+            # Status bar exist on the main window and Enaml allows us to get to
+            # it.
+            status_bar.show_message('Saved current process')
+        else:
+            save_as()
+
+    func save_as():
+        pass
+
+    func load():
+        pass
+
+    Container:
+
+        layout_constraints => ():
+            pass
+
+        Include:
+            items << create_steps_widgets(process.steps)
+
+        PushButton: save_btn:
+            text = 'Save'
+            clicked:: save()
+        PushButton: save_as_btn:
+            text = 'Save as'
+            clicked:: save_as()
+        PushButton: load_btn:
+            text = 'Load'
+            clicked:: load()

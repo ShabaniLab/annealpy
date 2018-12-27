@@ -23,6 +23,7 @@ enamldef AppWindow(MainWindow): main:
 
     """
     attr app_state
+    alias status_bar : status
 
     MenuBar:
         Menu:
@@ -30,11 +31,7 @@ enamldef AppWindow(MainWindow): main:
             Action:
                 text = 'Save\tCtrl+S'
                 triggered::
-                    if app_state.process.path:
-                        app.state.process.save()
-                        status.show_message('Saved current process')
-                    else:
-                        save_as.triggered = True
+                    process_item.save()
             Action: save_as:
                 text = 'Save as'
                 triggered::
@@ -62,7 +59,7 @@ enamldef AppWindow(MainWindow): main:
         DockArea:
             layout = HSplitLayout('process_item', 'plotting_item')
 
-            ProcessDockItem:
+            ProcessDockItem: process_item:
                 name = 'process_item'
                 process << app_state.process
             PlottingDockItem:
