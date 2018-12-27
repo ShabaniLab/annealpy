@@ -1,0 +1,70 @@
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# Copyright 2018 by Annealpy Authors, see AUTHORS for more details.
+#
+# Distributed under the terms of the BSD 3-Clause license.
+#
+# The full license is in the file LICENCE, distributed with this software.
+# -----------------------------------------------------------------------------
+"""Main window of the Annealpy application.
+
+"""
+from enaml.widgets.api import (MainWindow, DockArea, MenuBar, Menu, Action,
+                               FileDialogEx, StatusBar)
+from enaml.layout.api import HSplitLayout
+
+from .daq.daq_control_panel import DAQDialog
+from .plotting.plotting_dock import PlottingDockItem
+from .process_dock import ProcessDockItem
+
+
+enamldef AppWindow(MainWindow): main:
+    """Main window of the annealer control application.
+
+    """
+    attr app_state
+
+    MenuBar:
+        Menu:
+            title = 'Process'
+            Action:
+                text = 'Save\tCtrl+S'
+                triggered::
+                    if app_state.process.path:
+                        app.state.process.save()
+                        status.show_message('Saved current process')
+                    else:
+                        save_as.triggered = True
+            Action: save_as:
+                text = 'Save as'
+                triggered::
+                    pass
+            Action:
+                text = 'Load'
+                triggered::
+                    pass
+
+        Menu:
+            title = 'DAQ'
+            Action:
+                text = 'Select config file'
+                triggered::
+                    pass
+            Action:
+                text = 'Open test dialog'
+                triggered::
+                    pass
+
+    StatusBar: status:
+        pass
+
+    Container:
+        DockArea:
+            layout = HSplitLayout('process_item', 'plotting_item')
+
+            ProcessDockItem:
+                name = 'process_item'
+                process << app_state.process
+            PlottingDockItem:
+                name = 'plotting_item'
+                app_state = main.app_state

@@ -1,0 +1,85 @@
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# Copyright 2018 by Annealpy Authors, see AUTHORS for more details.
+#
+# Distributed under the terms of the BSD 3-Clause license.
+#
+# The full license is in the file LICENCE, distributed with this software.
+# -----------------------------------------------------------------------------
+import re
+
+from enaml.layout.api import hbox, vbox, align
+from enaml.widgets.api import Dialog, Container, PushButton, Label, Field
+from enaml.stdlib.fields import FloatField
+
+from .daq_control import AnnealerDaq
+
+enamldef DAQDialog(Dialog):
+    """Dialog that can be used to inspect the state of the DAQ.
+
+    """
+    attr daq_config : dict
+    attr daq_control
+
+    initialized::
+        self.daq_control = AnnealerDaq(daq_config)
+        self.daq_config.initialize()
+
+    closed::
+        self.daq_config.finalize()
+
+    Container:
+
+        # XXX add align to beautify this
+        constraints = [vbox(
+                           hbox(t_lab, t_fld, t_btn),
+                           hbox(hs_lab, hs_fld_read, hs_btn_read,
+                                hs_fld_write, hs_btn_write),
+                           hbox(hr_lab, hr_fld_read, hr_btn_read,
+                                hr_fld_write, hr_btn_write),
+                           )]
+
+        Label: t_lab:
+            text = 'Temperature (C)'
+        Field: t_fld:
+            pass
+        PushButton: t_btn:
+            text = 'Read'
+            clicked ::
+                t_fld.text = str(daq_control.read_temperature())
+
+        Label: hs_lab:
+            text = 'Switch heater'
+        Field: hs_fld_read:
+            pass
+        PushButton: hs_btn_read:
+            text = 'Read'
+            clicked ::
+                member = AnnealerDaq.heater_switch_state
+                new_text = ('On' if member.do_default_value(daq_control) else
+                            'Off')
+                hs_fld_read.text = new_text
+        Field: hs_fld_write:
+            pass
+        PushButton: hs_btn_write:
+            text = 'write'
+            clicked ::
+                value = (True if hs_fld_write.text in ('on', 'ON', 'On') else
+                         False)
+                daq_control.heater_switch_state = value
+
+        Label: hs_lab:
+            text = 'Heater regulation'
+        FloatField: hr_fld_read:
+            pass
+        PushButton: hr_btn_read:
+            text = 'Read'
+            clicked ::
+                member = AnnealerDaq.heater_reg_state
+                hr_fld_read.value = member.do_default_value(daq_control)
+        FloatField: hr_fld_write:
+            pass
+        PushButton: hr_btn_write:
+            text = 'write'
+            clicked ::
+                daq_control.heater_reg_state = hr_fld_write.value
