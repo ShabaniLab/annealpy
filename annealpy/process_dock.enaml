@@ -6,17 +6,106 @@
 #
 # The full license is in the file LICENCE, distributed with this software.
 # -----------------------------------------------------------------------------
+from itertools import chain
+
 from enaml.core.api import Include
-from enaml.layout.api import vbox, hbox, spacer
-from enaml.widgets.api import DockItem, Container, PushButton, FileDialogEx
+from enaml.layout.api import vbox, hbox, spacer, align
+from enaml.widgets.api import (DockItem, Container, PushButton, FileDialogEx,
+                               PushButton, Menu, Action, Dialog, ObjectCombo,
+                               MultilineField)
 
-from .steps import STEPS_WIDGETS
+from .process import AnnealerProcess
+from .steps import STEPS, create_widget
 
+enamldef StepSelectionDialog(Dialog): dial:
+    """A dialog to select a step type.
 
-def create_steps_widgets(steps):
     """
+    attr step << comb.selected
+
+    Container:
+
+        constraints = [vbox(hbox(comb, fld), hbox(spacer, c_btn, o_btn)),
+                       align('top', comb, fld)]
+
+        ObjectCombo: comb:
+            items = list(STEPS)
+        MultilineField: fld:
+            read_only = True
+            text << (STEPS[comb.selected].__doc__
+                     if comb.selected in STEPS else '')
+
+        PushButton: c_btn:
+            text = 'Cancel'
+            clicked:: dial.reject()
+        PushButton: o_btn:
+            text = 'Ok'
+            clicked:: dial.accept()
+
+
+enamldef StepEditionMenu(Menu):
+    """A menu to add-move-remove a step.
+
     """
-    pass
+    #: Reference to the process
+    attr process
+
+    #: Index of the step to which this button is linked.
+    attr index
+
+    Menu:
+        title = 'Add'
+        Action:
+            text = 'Add before'
+            triggered::
+                dial = StepSelectionDialog()
+                dial.exec_()
+                if dial.result:
+                    process.add_step(index, STEPS[dial.step]())
+        Action:
+            text = 'Add after'
+            triggered::
+                dial = StepSelectionDialog()
+                dial.exec_()
+                if dial.result:
+                    process.add_step(index+1, STEPS[dial.step]())
+    Menu:
+        title = 'Move'
+        Action:
+            text = 'Move up'
+            triggered::
+                process.move_step(index, index-1)
+        Action:
+            text = 'Move down'
+            triggered::
+                process.move_step(index, index+1)
+    Action:
+        text = 'Delete'
+        triggered::
+            process.remove_step(index)
+
+
+enamldef StepEditionButton(PushButton):
+    """A button displaying a menu to add-move-remove a step.
+
+    """
+    #: Reference to the process
+    attr process
+
+    #: Index of the step to which this button is linked.
+    attr index
+
+    clicked ::
+        menu = StepEditionMenu(self, process=process, index=index)
+        menu.popup()
+
+
+def create_steps_widgets(process, steps):
+    """Create a PushButton and a custom widget per step.
+
+    """
+    return chain([(StepEditionButton(process=process, index=i),
+                   create_widget(s) for i, s in enumerate(steps))])
 
 
 enamldef ProcessDockItem(DockItem):
@@ -37,15 +126,31 @@ enamldef ProcessDockItem(DockItem):
             save_as()
 
     func save_as():
-        pass
+        path = FileDialogEx.get_save_file_name(self, name_filters=['*.json'])
+        if path:
+            if not path.endswith('.json'):
+                path += '.json'
+            process.save(path)
+            # Status bar exist on the main window and Enaml allows us to get to
+            # it.
+            status_bar.show_message(f'Saved current process to {path}')
 
     func load():
-        pass
+        path = FileDialogEx.get_open_file_name(self, name_filters=['*.json'])
+        if path:
+            self.process = AnnealerProcess.load(path)
+            # Status bar exist on the main window and Enaml allows us to get to
+            # it.
+            status_bar.show_message(f'Loaded process from {path}')
 
     Container:
 
         layout_constraints => ():
-            pass
+            buttons = self.widgets()[:-2:2]
+            steps = self.widgets()[1:-2:2]
+            return [vbox(grid([(b, s) for b, s in zip(buttons, steps)],
+                              row_align='top'),
+                         hbox(save_btn, save_as_btn, spacer, load))]
 
         Include:
             items << create_steps_widgets(process.steps)

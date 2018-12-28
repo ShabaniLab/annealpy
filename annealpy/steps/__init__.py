@@ -8,8 +8,14 @@
 # -----------------------------------------------------------------------------
 from .base_step import BaseStep
 from .fast_ramp import FastRamp
-from .constant_step import ConstantStep
+from .regulated_step import RegulatedStep
 
 
 STEPS = {'FastRamp': FastRamp,
-         'ConstantStep': ConstantStep}
+         'RegulatedStep': RegulatedStep}
+
+def create_widget(step):
+    """Create the widget matching a step.
+
+    """
+    pass

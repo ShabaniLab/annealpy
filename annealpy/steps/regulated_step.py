@@ -9,22 +9,30 @@
 """Constant temperature step relying on a pid.
 
 """
-from atom.api import Float, Tuple
+from atom.api import Float, Float
 
 from .base_step import BaseStep
+from .pid import PID
 
 
-class ConstantStep(BaseStep):
-    """Perform a constant temperature step assuming we start from the target.
+class PIDRegulatedStep(BaseStep):
+    """Constant temperature step handled by a PID regulator.
 
     """
     #:
     target_temperature = Float().tag(pref=True)
 
     #:
-    pid_parameters = Tuple(Float()).tag(pref=True)
+    parameter_p = Float().tag(pref=True)
+
+    #:
+    parameter_i = Float().tag(pref=True)
+
+    #:
+    parameter_d = Float().tag(pref=True)
 
     def run(self, actuator):
         """
         """
         pass
+

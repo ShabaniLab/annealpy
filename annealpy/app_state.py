@@ -13,7 +13,8 @@ import os
 import json
 
 import numpy as np
-from atom.api import Atom, Enum, Int, Str, Typed
+from atom.api import Atom, Enum, Int, Str, Typed, Event, Bool, Float
+from enaml.application import timed_call
 
 from .process import AnnealerProcess
 
@@ -121,6 +122,9 @@ class ApplicationState(Atom):
     #: Path to the last loaded process.
     process_config_path = Str().tag(pref=True)
 
+    #: Plot refresh interval in s.
+    plot_refresh_interval = Float(2).tag(pref=True)
+
     #: Process being edited/run
     process = Typed(AnnealerProcess)
 
@@ -132,6 +136,9 @@ class ApplicationState(Atom):
 
     #: Measured temperature over time
     heater_regulation = Typed(ChannelStatus, (np.float, 'stepped', 10000))
+
+    #: Event signaling the plot should be updated.
+    plot_update = Event()
 
     def __init__(self):
         super().__init__()
@@ -175,16 +182,29 @@ class ApplicationState(Atom):
             return json.load(f)
 
     def start_plot_timer(self):
+        """Start a recurring timer that fire the plot_update event.
+
         """
-        """
-        pass # XXX todo
+        self._stop_timer = False
+        self._fire_plot_update()
 
     def stop_plot_timer(self):
-        """
-        """
-        pass # XXX todo
+        """Stop the recurring timer that fire the plot_update event.
 
+        """
+        self._stop_timer = True
     # --- Private API ---------------------------------------------------------
+
+    #: Boolean indicating the timer not to re-schedule itself.
+    _stop_timer = Bool()
+
+    def _fire_plot_update(self):
+        """Fire the plot update event and reschedule a new call.
+
+        """
+        self.plot_update = True
+        if not self._stop_timer:
+            timed_call(1000*self.plot_refresh_interval, self._fire_plot_update)
 
     def _post_setattr_daq_config_path(self, old, new):
         """Save the app state when the user specifies a new config.
@@ -194,6 +214,12 @@ class ApplicationState(Atom):
 
     def _post_setattr_process_config_path(self, old, new):
         """Save the app state when the user save/load a process.
+
+        """
+        self.save_app_state()
+
+    def _post_setattr_plot_refresh_interval(self, old, new):
+        """Save the app state when the user change the plot refresh interval.
 
         """
         self.save_app_state()

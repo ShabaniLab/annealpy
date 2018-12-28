@@ -81,6 +81,8 @@ class PollingThread(Thread):
                 ch_status = getattr(self.app_state, channel)
                 ch_status.append_value(time, value)
 
+        self.app_state.stop_plot_timer()
+
 
 class ActuatorSubprocess(Process):
     """Subprocess in charge of executing a process.
@@ -245,6 +247,11 @@ class AnnealerProcess(Atom):
         queue = Queue()
         stop_event = Event()
 
+        #: Reset the plots data
+        app_state.temperature.current_index = 0
+        app_state.heater_switch.current_index = 0
+        app_state.heater_regulation.current_index = 0
+
         self._actuator = ActuatorSubprocess(self.path,
                                             app_state.get_daq_config(),
                                             queue, stop_event)
@@ -255,6 +262,8 @@ class AnnealerProcess(Atom):
         self.status = 'Started'
         self._monitoring_thread.start()
         self._polling_thread.start()
+
+        app_state.start_plot_timer()
 
     def stop(self, force=False):
         """Stop the process.

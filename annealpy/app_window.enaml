@@ -35,11 +35,11 @@ enamldef AppWindow(MainWindow): main:
             Action: save_as:
                 text = 'Save as'
                 triggered::
-                    pass
+                    process_item.save_as()
             Action:
                 text = 'Load'
                 triggered::
-                    pass
+                    process_item.load()
 
         Menu:
             title = 'DAQ'

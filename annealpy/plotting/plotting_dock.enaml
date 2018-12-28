@@ -6,3 +6,57 @@
 #
 # The full license is in the file LICENCE, distributed with this software.
 # -----------------------------------------------------------------------------
+"""Dock item embedding a plot of the currently running or last run process.
+
+"""
+from enaml.layout.api import hbox, vbox, spacer
+from enaml.widgets.api import DockItem, Container, CheckBox
+
+from .pyqtgraph_widget import DualAxisPyqtGraphWidget
+
+
+enamldef PlottingDockItem(DockItem): main:
+    """Dock item embedding a plot of the currently running or last run process.
+
+    """
+    #: State of the application driving the plot
+    attr app_state
+
+    activated::
+        plot.add_plot('temperature')
+        plot.add_plot('switch_heater')
+        plot.add_plot('heater_regulation')
+
+    Container:
+
+        constraints = [vbox(plot, hbox(t_ch, spacer, s_ch, spacer, r_ch))]
+
+        DualAxisPyqtGraphWidget: plot:
+            app_state = main.app_state
+
+        CheckBox: t_ch:
+            text = 'Temperature'
+            checked = True
+            toggled::
+                if checked:
+                    plot.add_plot('temperature')
+                else:
+                    plot.remove_plot('temperature')
+
+        CheckBox: s_ch:
+            text = 'Switch heater'
+            checked = True
+            toggled::
+                if checked:
+                    plot.add_plot('heater_switch')
+                else:
+                    plot.remove_plot('heater_switch')
+
+        CheckBox: r_ch:
+            text = 'Temperature'
+            checked = True
+            toggled::
+                if checked:
+                    plot.add_plot('heater_regulation')
+                else:
+                    plot.remove_plot('heater_regulation')
