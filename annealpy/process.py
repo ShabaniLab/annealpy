@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# Copyright 2018 by Annealpy Authors, see AUTHORS for more details.
+# Copyright 2018 by AnnealPy Authors, see AUTHORS for more details.
 #
 # Distributed under the terms of the BSD 3-Clause license.
 #
@@ -169,7 +169,7 @@ class AnnealerProcess(Atom):
     path = Str()
 
     #: Steps describing the annealing process.
-    steps = List(BaseStep)
+    steps = List(BaseStep, [])
 
     #: Current status of the process.
     status = Enum('Inactive', 'Started', 'Runnning', 'Completed', 'Stopped')
@@ -214,7 +214,7 @@ class AnnealerProcess(Atom):
 
         """
         steps = self.steps[:]
-        if index is None:
+        if index is None or index >= len(self.steps):
             steps.append(step)
         else:
             steps.insert(index, step)

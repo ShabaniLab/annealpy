@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# Copyright 2018 by Annealpy Authors, see AUTHORS for more details.
+# Copyright 2018 by AnnealPy Authors, see AUTHORS for more details.
 #
 # Distributed under the terms of the BSD 3-Clause license.
 #
@@ -33,7 +33,7 @@ class ChannelStatus(Atom):
     kind = Enum('continuous', 'stepped')
 
     #: Array containing the time elapsed in s since the process started.
-    time = Typed(np.ndarray)
+    times = Typed(np.ndarray)
 
     #: Recorded values since the process started. Values are stored in such a
     #: way as to produce plot in agreemnent with their kind.
@@ -47,9 +47,10 @@ class ChannelStatus(Atom):
 
     def __init__(self, type, kind, initial_size):
         self.kind = kind
-        self.time = np.empty(initial_size)
+        self.times = np.empty(initial_size)
         self.values = np.empty(initial_size, type)
         self.allocated_size = initial_size
+        self.current_index = min(self.allocated_size - 1, 100)
 
     def add_first_value(self, value):
         """Add a first value in the records.
@@ -61,7 +62,7 @@ class ChannelStatus(Atom):
             raise ValueError('add_first_value can only be called if the '
                              f'current_index is 0 not {self.current_index}')
 
-        self.time[0] = 0
+        self.times[0] = 0
         self.values[0] = value
         self.current_index += 1
 
@@ -73,19 +74,19 @@ class ChannelStatus(Atom):
         """
         index = self.current_index
         if self.kind == 'stepped':
-            self.time[index:index+2] = time
+            self.times[index:index+2] = time
             self.values[index] = self.values[index-1]
             self.values[index+1] = value
             self.current_index += 2
         else:
-            self.time[index] = time
+            self.times[index] = time
             self.values[index] = value
             self.current_index += 1
 
         if self.current_index + 1 >= self.allocated_size:
-            old_time = self.time
-            self.time = np.empty(int(1.5*self.allocated_size))
-            self.time[:len(old_time)+1] = old_time
+            old_time = self.times
+            self.times = np.empty(int(1.5*self.allocated_size))
+            self.times[:len(old_time)+1] = old_time
             old_values = self.values
             self.values = np.empty(int(1.5*self.allocated_size),
                                    old_values.dtype)
@@ -102,7 +103,7 @@ class ChannelStatus(Atom):
                     self.values[:index])
 
         else:
-            self.time[index] = time
+            self.times[index] = time
             self.values[index] = self.values[index-1]
             return (self.times[:index+1],
                     self.values[:index+1])
@@ -126,7 +127,7 @@ class ApplicationState(Atom):
     plot_refresh_interval = Float(2).tag(pref=True)
 
     #: Process being edited/run
-    process = Typed(AnnealerProcess)
+    process = Typed(AnnealerProcess, ())
 
     #: Measured temperature over time
     temperature = Typed(ChannelStatus, (np.float, 'continuous', 36000))
@@ -154,8 +155,8 @@ class ApplicationState(Atom):
         if os.path.isfile(path):
             with open(path) as f:
                 config = json.load(f)
-            for name, member in self.get_members():
-                if 'pref' in member.metadata:
+            for name, member in self.members().items():
+                if member.metadata and 'pref' in member.metadata:
                     setattr(self, name, config[name])
 
         else:
@@ -167,8 +168,8 @@ class ApplicationState(Atom):
 
         """
         config = {}
-        for name, member in self.get_members():
-            if 'pref' in member.metadata:
+        for name, member in self.members().items():
+            if member.metadata and 'pref' in member.metadata:
                 config[name] = getattr(self, name)
         path = os.path.join(os.path.dirname(__file__), 'config.json')
         with open(path, 'w') as f:

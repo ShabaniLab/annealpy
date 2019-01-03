@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# Copyright 2018 by Annealpy Authors, see AUTHORS for more details.
+# Copyright 2018 by AnnealPy Authors, see AUTHORS for more details.
 #
 # Distributed under the terms of the BSD 3-Clause license.
 #
@@ -12,9 +12,9 @@
 import enaml
 from enaml.qt.qt_application import QtApplication
 
-from .app_state import ApplicationState
+from annealpy.app_state import ApplicationState
 with enaml.imports():
-    from .main_window import AppWindow
+    from annealpy.app_window import AppWindow
 
 
 def main():
@@ -23,7 +23,7 @@ def main():
 
     app = QtApplication()
     # Create a view and show it.
-    view = AppWindow(state=app_state)
+    view = AppWindow(app_state=app_state)
     view.show()
 
     app.start()

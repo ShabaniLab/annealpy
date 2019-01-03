@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# Copyright 2018 by Annealpy Authors, see AUTHORS for more details.
+# Copyright 2018 by AnnealPy Authors, see AUTHORS for more details.
 #
 # Distributed under the terms of the BSD 3-Clause license.
 #
@@ -37,8 +37,8 @@ class BaseStep(Atom):
 
         """
         preferences = dict()
-        for name, member in self.get_members().items():
-            if 'pref' in member.metadata:
+        for name, member in self.members().items():
+            if member.metadata and 'pref' in member.metadata:
                 preferences[name] = getattr(self, name)
 
         return preferences

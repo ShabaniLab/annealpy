@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# Copyright 2018 by Annealpy Authors, see AUTHORS for more details.
+# Copyright 2018 by AnnealPy Authors, see AUTHORS for more details.
 #
 # Distributed under the terms of the BSD 3-Clause license.
 #
@@ -10,20 +10,20 @@ import enaml
 
 from .base_step import BaseStep
 from .fast_ramp import FastRamp
-from .regulated_step import RegulatedStep
+from .pid_regulated_step import PIDRegulatedStep
 
 with enaml.imports():
-    from .views.regulated_step_view import RegulatedStepView
+    from .views.pid_regulated_step_view import PIDRegulatedStepView
 
 STEPS = {'FastRamp': FastRamp,
-         'RegulatedStep': RegulatedStep}
+         'PIDRegulatedStep': PIDRegulatedStep}
 
 
-_STEP_VIEWS = {RegulatedStep: RegulatedStepView}
+_STEP_VIEWS = {PIDRegulatedStep: PIDRegulatedStepView}
 
 
 def create_widget(step):
     """Create the widget matching a step.
 
     """
-    return _STEP_VIEWS[type(step)](step)
+    return _STEP_VIEWS[type(step)](step=step)

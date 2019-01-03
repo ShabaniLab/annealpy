@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# Copyright 2018 by Annealpy Authors, see AUTHORS for more details.
+# Copyright 2018 by AnnealPy Authors, see AUTHORS for more details.
 #
 # Distributed under the terms of the BSD 3-Clause license.
 #
 # The full license is in the file LICENCE, distributed with this software.
 # -----------------------------------------------------------------------------
-"""Main window of the Annealpy application.
+"""Main window of the AnnealPy application.
 
 """
 from enaml.widgets.api import (MainWindow, DockArea, MenuBar, Menu, Action,
-                               FileDialogEx, StatusBar)
+                               FileDialogEx, StatusBar, Container)
 from enaml.layout.api import HSplitLayout
 
 from .daq.daq_control_panel import DAQDialog
@@ -23,7 +23,8 @@ enamldef AppWindow(MainWindow): main:
 
     """
     attr app_state
-    alias status_bar : status
+
+    title = 'Annealer controller'
 
     MenuBar:
         Menu:
@@ -50,7 +51,7 @@ enamldef AppWindow(MainWindow): main:
             Action:
                 text = 'Open test dialog'
                 triggered::
-                    pass
+                    DAQDialog(self).exec_()
 
     StatusBar: status:
         pass

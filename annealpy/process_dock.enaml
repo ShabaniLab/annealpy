@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# Copyright 2018 by Annealpy Authors, see AUTHORS for more details.
+# Copyright 2018 by AnnealPy Authors, see AUTHORS for more details.
 #
 # Distributed under the terms of the BSD 3-Clause license.
 #
@@ -9,10 +9,10 @@
 from itertools import chain
 
 from enaml.core.api import Include
-from enaml.layout.api import vbox, hbox, spacer, align
+from enaml.layout.api import vbox, hbox, spacer, align, grid
 from enaml.widgets.api import (DockItem, Container, PushButton, FileDialogEx,
                                PushButton, Menu, Action, Dialog, ObjectCombo,
-                               MultilineField)
+                               MultilineField, ToolButton)
 
 from .process import AnnealerProcess
 from .steps import STEPS, create_widget
@@ -85,7 +85,7 @@ enamldef StepEditionMenu(Menu):
             process.remove_step(index)
 
 
-enamldef StepEditionButton(PushButton):
+enamldef StepEditionButton(ToolButton):
     """A button displaying a menu to add-move-remove a step.
 
     """
@@ -95,17 +95,37 @@ enamldef StepEditionButton(PushButton):
     #: Index of the step to which this button is linked.
     attr index
 
+    text = '>'
+
     clicked ::
         menu = StepEditionMenu(self, process=process, index=index)
         menu.popup()
+
+
+enamldef AddFirstStepButton(PushButton):
+    """Button used to add the first step to a process.
+
+    """
+    attr process
+
+    text = 'Add first step'
+    clicked ::
+        dial = StepSelectionDialog()
+        dial.exec_()
+        if dial.result:
+            process.add_step(None, STEPS[dial.step]())
 
 
 def create_steps_widgets(process, steps):
     """Create a PushButton and a custom widget per step.
 
     """
-    return chain([(StepEditionButton(process=process, index=i),
-                   create_widget(s) for i, s in enumerate(steps))])
+    if steps:
+        return list(chain(*[(StepEditionButton(process=process, index=i),
+                             create_widget(s))
+                        for i, s in enumerate(steps)]))
+    else:
+        return [AddFirstStepButton(process=process)]
 
 
 enamldef ProcessDockItem(DockItem):
@@ -119,8 +139,7 @@ enamldef ProcessDockItem(DockItem):
     func save():
         if app_state.process.path:
             app.state.process.save()
-            # Status bar exist on the main window and Enaml allows us to get to
-            # it.
+            status_bar = self.parent.status_bar()
             status_bar.show_message('Saved current process')
         else:
             save_as()
@@ -131,29 +150,33 @@ enamldef ProcessDockItem(DockItem):
             if not path.endswith('.json'):
                 path += '.json'
             process.save(path)
-            # Status bar exist on the main window and Enaml allows us to get to
-            # it.
-            status_bar.show_message(f'Saved current process to {path}')
+            status_bar = self.parent.status_bar()
+            status_bar.show_message('Saved current process to {}'.format(path))
 
     func load():
         path = FileDialogEx.get_open_file_name(self, name_filters=['*.json'])
         if path:
             self.process = AnnealerProcess.load(path)
-            # Status bar exist on the main window and Enaml allows us to get to
-            # it.
-            status_bar.show_message(f'Loaded process from {path}')
+            status_bar = self.parent.status_bar()
+            status_bar.show_message('Loaded process from {}'.format(path))
 
     Container:
 
         layout_constraints => ():
-            buttons = self.widgets()[:-2:2]
-            steps = self.widgets()[1:-2:2]
-            return [vbox(grid([(b, s) for b, s in zip(buttons, steps)],
-                              row_align='top'),
-                         hbox(save_btn, save_as_btn, spacer, load))]
+            if process.steps:
+                buttons = self.widgets()[:-2:2]
+                steps = self.widgets()[1:-2:2]
+                args = [hbox(b, s) for b, s in zip(buttons, steps)]
+                args += [spacer,
+                         hbox(save_btn, save_as_btn, spacer, load_btn)]
+                return [vbox(*args)] + [align('top', b, s)
+                                        for b, s in zip(buttons, steps)]
+            else:
+                return [vbox(self.widgets()[0], spacer,
+                             hbox(save_btn, save_as_btn, spacer, load_btn))]
 
         Include:
-            items << create_steps_widgets(process.steps)
+            objects << create_steps_widgets(process, process.steps)
 
         PushButton: save_btn:
             text = 'Save'

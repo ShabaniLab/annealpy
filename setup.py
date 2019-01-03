@@ -10,7 +10,7 @@ except ImportError:
     sys.exit(1)
 
 sys.path.insert(0, os.path.abspath('.'))
-from shabanipy.version import __version__
+from annealpy.version import __version__
 
 
 def read(filename):

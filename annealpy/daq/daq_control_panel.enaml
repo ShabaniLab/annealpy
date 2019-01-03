@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# Copyright 2018 by Annealpy Authors, see AUTHORS for more details.
+# Copyright 2018 by AnnealPy Authors, see AUTHORS for more details.
 #
 # Distributed under the terms of the BSD 3-Clause license.
 #
@@ -18,15 +18,15 @@ enamldef DAQDialog(Dialog):
     """Dialog that can be used to inspect the state of the DAQ.
 
     """
-    attr daq_config : dict
+    attr daq_config : dict = {}
     attr daq_control
 
     initialized::
         self.daq_control = AnnealerDaq(daq_config)
-        self.daq_config.initialize()
+        self.daq_control.initialize()
 
     closed::
-        self.daq_config.finalize()
+        self.daq_control.finalize()
 
     Container:
 
@@ -68,7 +68,7 @@ enamldef DAQDialog(Dialog):
                          False)
                 daq_control.heater_switch_state = value
 
-        Label: hs_lab:
+        Label: hr_lab:
             text = 'Heater regulation'
         FloatField: hr_fld_read:
             pass

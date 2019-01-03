@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# Copyright 2018 by Annealpy Authors, see AUTHORS for more details.
+# Copyright 2018 by AnnealPy Authors, see AUTHORS for more details.
 #
 # Distributed under the terms of the BSD 3-Clause license.
 #
@@ -10,7 +10,7 @@
 
 """
 import pyqtgraph as pg
-from atom.api import Typed, Dict, Value
+from atom.api import Typed, Dict, Value, set_default
 from enaml.core.api import d_
 from enaml.layout.api import hbox, vbox, spacer
 from enaml.widgets.api import RawWidget
@@ -25,11 +25,14 @@ class DualAxisPyqtGraphWidget(RawWidget):
     #: Reference to the application state.
     app_state = d_(Typed(ApplicationState))
 
+    hug_width = set_default('ignore')
+    hug_height = set_default('ignore')
+
     def create_widget(self, parent):
         """Create the pyqtgraph widget.
 
         """
-        widget = pg.PlotWidget()
+        widget = pg.PlotWidget(parent)
         left_plot = widget.plotItem
         left_plot.setLabels(left='Temperature (C)')
         self._left_plot = left_plot
@@ -42,6 +45,7 @@ class DualAxisPyqtGraphWidget(RawWidget):
         right_plot.setXLink(left_plot)
         left_plot.getAxis('right').setLabel('Heater state', color='#0000ff')
         right_plot.setYRange(0, 1)
+        self._right_plot = right_plot
 
         return widget
 
@@ -52,7 +56,7 @@ class DualAxisPyqtGraphWidget(RawWidget):
         time = None
         if id != 'temperature' and 'temperature' in self._curves:
             temp = self.app_state.temperature
-            time = temp.time[temp.current_index - 1]
+            time = temp.times[temp.current_index - 1]
 
         time, data = getattr(self.app_state, id).get_data(time)
 

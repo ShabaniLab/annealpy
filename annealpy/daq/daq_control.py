@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# Copyright 2018 by Annealpy Authors, see AUTHORS for more details.
+# Copyright 2018 by AnnealPy Authors, see AUTHORS for more details.
 #
 # Distributed under the terms of the BSD 3-Clause license.
 #
@@ -11,8 +11,13 @@
 """
 from typing import Optional
 
-import nidaqmx
-from atom.api import Atom, Bool, Dict, Float, Str, Typed
+from atom.api import Atom, Bool, Dict, Float, Str, Typed, FloatRange
+
+try:
+    import nidaqmx
+except ImportError:
+    print('NIDAQmx does not seem to be installed. Running in simulation mode.')
+    nidaqmx = None
 
 
 class AnnealerDaq(Atom):
@@ -54,13 +59,13 @@ class AnnealerDaq(Atom):
 
     #: State of the heater regulator. Changing this value directly affects the
     #: hardware.
-    heater_reg_state = Float(min=0, max=1)
+    heater_reg_state = FloatRange(low=0.0, high=1.0)
 
     #: Maximal value that can be used by the regulator.
-    heater_reg_max_value = Float(min=-10, max=10)
+    heater_reg_max_value = FloatRange(low=-10.0, high=10.0)
 
     #: Minimal value that can be used by the regulator.
-    heater_reg_min_value = Float(min=-10, max=10)
+    heater_reg_min_value = FloatRange(low=-10.0, high=10.0)
 
     def __init__(self, config: dict) -> None:
         for attr in ('device_id', 'heater_switch_id',
@@ -69,6 +74,8 @@ class AnnealerDaq(Atom):
                 setattr(self, attr, config[attr])
 
     def initialize(self) -> None:
+        if nidaqmx is None:
+            return
         # Validate that the device we will use exist.
         devices = nidaqmx.system.System.local().devices
         if self.device_id not in devices:
@@ -94,6 +101,9 @@ class AnnealerDaq(Atom):
         """Read the temperature measured by the DAQ.
 
         """
+        if not nidaqmx:
+            return 20
+
         if 'temperature' not in self._tasks:
             msg = ('The connection to the DAQ must be established prior to '
                    'reading the temperature by calling `initialize`')
@@ -115,6 +125,9 @@ class AnnealerDaq(Atom):
         """Get the value from the DAQ on first read.
 
         """
+        if not nidaqmx:
+            return False
+
         if 'heater_switch' not in self._tasks:
             msg = ('The connection to the DAQ must be established prior to '
                    'reading the heater switch state by calling `initialize`')
@@ -129,6 +142,9 @@ class AnnealerDaq(Atom):
         """Try to update the DAQ when a valid value is passed.
 
         """
+        if not nidaqmx:
+            return new
+
         if 'heater_switch' not in self._tasks:
             msg = ('The connection to the DAQ must be established prior to '
                    'writing the heater switch state by calling `initialize`')
@@ -144,6 +160,9 @@ class AnnealerDaq(Atom):
         """Get the value from the DAQ on first read.
 
         """
+        if not nidaqmx:
+            return 0.0
+
         if 'heater_reg' not in self._tasks:
             msg = ('The connection to the DAQ must be established prior to '
                    'reading the heater regulator stqte by calling `initialize`'
@@ -160,6 +179,9 @@ class AnnealerDaq(Atom):
         """Try to update the DAQ when a valid value is passed.
 
         """
+        if not nidaqmx:
+            return new
+
         if 'heater_reg' not in self._tasks:
             msg = ('The connection to the DAQ must be established prior to '
                    'writing the heater regulator state by calling `initialize`'

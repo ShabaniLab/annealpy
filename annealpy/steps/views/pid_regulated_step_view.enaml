@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# Copyright 2018-2019 by Annealpy Authors, see AUTHORS for more details.
+# Copyright 2018-2019 by AnnealPy Authors, see AUTHORS for more details.
 #
 # Distributed under the terms of the BSD 3-Clause license.
 #
@@ -11,16 +11,16 @@ from enaml.widgets.api import Container, Label, CheckBox, GroupBox
 from enaml.stdlib.fields import FloatField
 
 
-enamldef RegulatedStepView(Container):
+enamldef PIDRegulatedStepView(Container):
     """View for a regulated step.
 
     """
     attr step
 
-    constraints << ([vbox(grid([(tg_lab, tg_val), (du_lab, du_val)]),
+    constraints << ([vbox(grid((tg_lab, tg_val), (du_lab, du_val)),
                           hbox(adv_box, spacer), adv_set)]
                     if adv_box.checked else
-                    [vbox(grid([(tg_lab, tg_val), (du_lab, du_val)]),
+                    [vbox(grid((tg_lab, tg_val), (du_lab, du_val)),
                           hbox(adv_box, spacer))]
                     )
 
@@ -40,8 +40,8 @@ enamldef RegulatedStepView(Container):
     GroupBox: adv_set:
         title = 'Advanced settings'
         visible << adv_box.checked
-        constraints = [grid([(p_lab, p_val), (i_lab, i_val), (d_lab, d_val),
-                             (int_lab, int_val),])]
+        constraints = [grid((p_lab, p_val), (i_lab, i_val), (d_lab, d_val),
+                            (int_lab, int_val))]
 
         Label: p_lab:
             text = 'PID P'
