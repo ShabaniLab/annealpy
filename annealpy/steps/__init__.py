@@ -6,16 +6,24 @@
 #
 # The full license is in the file LICENCE, distributed with this software.
 # -----------------------------------------------------------------------------
+import enaml
+
 from .base_step import BaseStep
 from .fast_ramp import FastRamp
 from .regulated_step import RegulatedStep
 
+with enaml.imports():
+    from .views.regulated_step_view import RegulatedStepView
 
 STEPS = {'FastRamp': FastRamp,
          'RegulatedStep': RegulatedStep}
+
+
+_STEP_VIEWS = {RegulatedStep: RegulatedStepView}
+
 
 def create_widget(step):
     """Create the widget matching a step.
 
     """
-    pass
+    return _STEP_VIEWS[type(step)](step)

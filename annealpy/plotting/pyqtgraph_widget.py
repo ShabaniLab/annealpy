@@ -105,6 +105,3 @@ class DualAxisPyqtGraphWidget(RawWidget):
         if 'heater_regulation' in self._curves:
             time, data = self.app_state.heater_regulation.get_data()
             self._curves['heater_regulation'].setData(x=time, y=data)
-
-
-

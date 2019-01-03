@@ -1,0 +1,64 @@
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# Copyright 2018-2019 by Annealpy Authors, see AUTHORS for more details.
+#
+# Distributed under the terms of the BSD 3-Clause license.
+#
+# The full license is in the file LICENCE, distributed with this software.
+# -----------------------------------------------------------------------------
+from enaml.layout.api import hbox, vbox, align, grid, spacer
+from enaml.widgets.api import Container, Label, CheckBox, GroupBox
+from enaml.stdlib.fields import FloatField
+
+
+enamldef RegulatedStepView(Container):
+    """View for a regulated step.
+
+    """
+    attr step
+
+    constraints << ([vbox(grid([(tg_lab, tg_val), (du_lab, du_val)]),
+                          hbox(adv_box, spacer), adv_set)]
+                    if adv_box.checked else
+                    [vbox(grid([(tg_lab, tg_val), (du_lab, du_val)]),
+                          hbox(adv_box, spacer))]
+                    )
+
+    Label: tg_lab:
+        text = 'Target temperature (C)'
+    FloatField: tg_val:
+        value := step.target_temperature
+
+    Label: du_lab:
+        text = 'Duration (s)'
+    FloatField: du_val:
+        value := step.duration
+
+    CheckBox: adv_box:
+        text = 'Show advanced'
+
+    GroupBox: adv_set:
+        title = 'Advanced settings'
+        visible << adv_box.checked
+        constraints = [grid([(p_lab, p_val), (i_lab, i_val), (d_lab, d_val),
+                             (int_lab, int_val),])]
+
+        Label: p_lab:
+            text = 'PID P'
+        FloatField: p_val:
+            value := step.parameter_p
+
+        Label: i_lab:
+            text = 'PID I'
+        FloatField: i_val:
+            value := step.parameter_i
+
+        Label: d_lab:
+            text = 'PID D'
+        FloatField: d_val:
+            value := step.parameter_d
+
+        Label: int_lab:
+            text = 'PID interval (s)'
+        FloatField: int_val:
+            value := step.interval
