@@ -12,7 +12,8 @@ from enaml.core.api import Include
 from enaml.layout.api import vbox, hbox, spacer, align, grid
 from enaml.widgets.api import (DockItem, Container, PushButton, FileDialogEx,
                                PushButton, Menu, Action, Dialog, ObjectCombo,
-                               MultilineField, ToolButton)
+                               MultilineField, ToolButton, GroupBox, Label,
+                               Field)
 
 from .process import AnnealerProcess
 from .steps import STEPS, create_widget
@@ -22,6 +23,8 @@ enamldef StepSelectionDialog(Dialog): dial:
 
     """
     attr step << comb.selected
+
+    title = 'Select a step to add to the process'
 
     Container:
 
@@ -58,14 +61,14 @@ enamldef StepEditionMenu(Menu):
         Action:
             text = 'Add before'
             triggered::
-                dial = StepSelectionDialog()
+                dial = StepSelectionDialog(self.parent.parent)
                 dial.exec_()
                 if dial.result:
                     process.add_step(index, STEPS[dial.step]())
         Action:
             text = 'Add after'
             triggered::
-                dial = StepSelectionDialog()
+                dial = StepSelectionDialog(self.parent.parent)
                 dial.exec_()
                 if dial.result:
                     process.add_step(index+1, STEPS[dial.step]())
@@ -110,10 +113,31 @@ enamldef AddFirstStepButton(PushButton):
 
     text = 'Add first step'
     clicked ::
-        dial = StepSelectionDialog()
+        dial = StepSelectionDialog(self)
         dial.exec_()
         if dial.result:
             process.add_step(None, STEPS[dial.step]())
+
+
+enamldef EditDescriptionDialog(Dialog): dial:
+    """Dialog used to edit the description of a process.
+
+    """
+    alias description: fld.text
+
+    title = 'Process description'
+
+    Container:
+        constraints = [vbox(fld, hbox(spacer, can, ok))]
+
+        MultilineField: fld:
+            pass
+        PushButton: can:
+            text = 'Cancel'
+            clicked:: dial.reject()
+        PushButton: ok:
+            text = 'Ok'
+            clicked:: dial.accept()
 
 
 def create_steps_widgets(process, steps):
@@ -139,8 +163,8 @@ enamldef ProcessDockItem(DockItem):
     func save():
         if app_state.process.path:
             app.state.process.save()
-            status_bar = self.parent.status_bar()
-            status_bar.show_message('Saved current process')
+            status_bar = self.root_object().status_bar()
+            status_bar.show_message('Saved current process', 5000)
         else:
             save_as()
 
@@ -150,40 +174,74 @@ enamldef ProcessDockItem(DockItem):
             if not path.endswith('.json'):
                 path += '.json'
             process.save(path)
-            status_bar = self.parent.status_bar()
-            status_bar.show_message('Saved current process to {}'.format(path))
+            status_bar = self.root_object().status_bar()
+            status_bar.show_message('Saved current process to {}'.format(path),
+                                    5000)
 
     func load():
         path = FileDialogEx.get_open_file_name(self, name_filters=['*.json'])
         if path:
             self.process = AnnealerProcess.load(path)
-            status_bar = self.parent.status_bar()
-            status_bar.show_message('Loaded process from {}'.format(path))
+            status_bar = self.root_object().status_bar()
+            status_bar.show_message('Loaded process from {}'.format(path),
+                                    5000)
 
     Container:
 
         layout_constraints => ():
             if process.steps:
-                buttons = self.widgets()[:-2:2]
-                steps = self.widgets()[1:-2:2]
-                args = [hbox(b, s) for b, s in zip(buttons, steps)]
-                args += [spacer,
-                         hbox(save_btn, save_as_btn, spacer, load_btn)]
+                buttons = self.widgets()[2:-1:2]
+                steps = self.widgets()[3:-1:2]
+                args = [hbox(sta_lab, spacer, sta_val)]
+                args += [hbox(b, s) for b, s in zip(buttons, steps)]
+                args += [spacer, group]
                 return [vbox(*args)] + [align('top', b, s)
                                         for b, s in zip(buttons, steps)]
             else:
-                return [vbox(self.widgets()[0], spacer,
-                             hbox(save_btn, save_as_btn, spacer, load_btn))]
+                return [vbox(hbox(sta_lab, spacer, sta_val),
+                             self.widgets()[2], spacer, group)]
+
+        Label: sta_lab:
+            text = 'Process status'
+        Field: sta_val:
+            read_only = True
+            text << process.status
 
         Include:
             objects << create_steps_widgets(process, process.steps)
 
-        PushButton: save_btn:
-            text = 'Save'
-            clicked:: save()
-        PushButton: save_as_btn:
-            text = 'Save as'
-            clicked:: save_as()
-        PushButton: load_btn:
-            text = 'Load'
-            clicked:: load()
+        GroupBox: group:
+
+            constraints = [vbox(hbox(run, stop, spacer, descr),
+                                hbox(save_btn, save_as_btn, spacer, load_btn))]
+
+            PushButton: run:
+                text = 'Start'
+                clicked::
+                    # We access app_state from the main window namespace.
+                    process.start(app_state)
+            PushButton: stop:
+                attr use_force_stop << bool(process.status == 'Stopping')
+                text << 'Force stop' if use_force_stop else 'Stop'
+                clicked::
+                    process.stop(use_force_stop)
+
+            PushButton: descr:
+                text = 'Edit description'
+                clicked::
+                    desc = process.description
+                    dial = EditDescriptionDialog(self,
+                                                 description=desc)
+                    dial.exec_()
+                    if dial.result:
+                        process.description = dial.description
+
+            PushButton: save_btn:
+                text = 'Save'
+                clicked:: save()
+            PushButton: save_as_btn:
+                text = 'Save as'
+                clicked:: save_as()
+            PushButton: load_btn:
+                text = 'Load'
+                clicked:: load()

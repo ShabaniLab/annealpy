@@ -12,7 +12,7 @@
 import json
 import time
 from multiprocessing import Event, Process, Queue
-from threading import Event, Thread
+from threading import Thread
 
 from atom.api import Atom, Enum, List, Typed, Str
 from enaml.application import deferred_call
@@ -42,23 +42,25 @@ class MonitoringThread(Thread):
         """
         while True:
             # Wait for the process to start
-            if self.process.actuator.is_alive():
+            if self.process._actuator.is_alive():
                 break
 
             # If a stop is requested and we somehow missed the starting of the
             # process exit. THIS SHOULD NEVER HAPPEN
-            elif self.process.actuator.stop_event.is_set():
+            elif self.process._actuator.stop_event.is_set():
                 return
 
-        deferred_call(setattr, (self.process, 'status', 'Running'))
+        deferred_call(setattr, self.process, 'status', 'Running')
 
-        while self.process.actuator.is_alive():
-            self.process.actuator.join(2)
+        while self.process._actuator.is_alive():
+            self.process._actuator.join(2)
 
-        if self.process.actuator.stop_event.is_set():
-            deferred_call(setattr, (self.process, 'status', 'Stopped'))
+        if self.process._actuator.crashed_event.is_set():
+            deferred_call(setattr, self.process, 'status', 'Failed')
+        elif self.process._actuator.stop_event.is_set():
+            deferred_call(setattr, self.process, 'status', 'Stopped')
         else:
-            deferred_call(setattr, (self.process, 'status', 'Completed'))
+            deferred_call(setattr, self.process, 'status', 'Completed')
 
 
 class PollingThread(Thread):
@@ -69,12 +71,13 @@ class PollingThread(Thread):
 
         super().__init__()
         self.app_state = app_state
-        self.actuator_queue = actuator_queue
+        self._actuator_queue = actuator_queue
 
     def run(self):
 
         while True:
-            channel, time, value = self.actuator_queue.get()
+            channel, time, value = self._actuator_queue.get()
+            print(channel, time, value)
             if channel is None:
                 break
             else:
@@ -88,15 +91,17 @@ class ActuatorSubprocess(Process):
     """Subprocess in charge of executing a process.
 
     """
-    def __init__(self, process_config_path, daq_config, queue, stop_event):
+    def __init__(self, process_config_path, daq_config, queue,
+                 stop_event, crashed_event):
 
-        super().__init__()
+        super().__init__(daemon=True)
         self.process_config_path = process_config_path
         self.daq_config = daq_config
         self.queue = queue
         self.stop_event = stop_event
         self._daq = None
         self.start_time = 0.0
+        self.crashed_event = crashed_event
 
     def run(self):
         """Run the process described in the config.
@@ -118,6 +123,9 @@ class ActuatorSubprocess(Process):
                 if self.stop_event.is_set():
                     break
                 s.run(self)
+
+        except Exception:
+            self.crashed_event.set()
 
         finally:
             self._daq.finalize()
@@ -172,7 +180,8 @@ class AnnealerProcess(Atom):
     steps = List(BaseStep, [])
 
     #: Current status of the process.
-    status = Enum('Inactive', 'Started', 'Runnning', 'Completed', 'Stopped')
+    status = Enum('Inactive', 'Started', 'Running', 'Completed',
+                  'Stopping', 'Stopped', 'Failed')
 
     def save(self, path=None):
         """Save the process to a json file by serializing the steps.
@@ -199,7 +208,7 @@ class AnnealerProcess(Atom):
             config = json.load(f)
 
         steps = []
-        for c in config:
+        for c in config["steps"]:
             step_cls = STEPS[c.pop('type')]
             steps.append(step_cls(**c))
 
@@ -246,6 +255,7 @@ class AnnealerProcess(Atom):
         """
         queue = Queue()
         stop_event = Event()
+        crashed_event = Event()
 
         #: Reset the plots data
         app_state.temperature.current_index = 0
@@ -254,7 +264,8 @@ class AnnealerProcess(Atom):
 
         self._actuator = ActuatorSubprocess(self.path,
                                             app_state.get_daq_config(),
-                                            queue, stop_event)
+                                            queue, stop_event,
+                                            crashed_event)
         self._monitoring_thread = MonitoringThread(self)
         self._polling_thread = PollingThread(app_state, queue)
 
@@ -269,6 +280,7 @@ class AnnealerProcess(Atom):
         """Stop the process.
 
         """
+        self.status = 'Stopping'
         if force:
             self._actuator.terminate()
         else:

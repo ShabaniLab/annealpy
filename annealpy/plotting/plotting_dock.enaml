@@ -22,10 +22,13 @@ enamldef PlottingDockItem(DockItem): main:
     #: State of the application driving the plot
     attr app_state
 
+    closable = False
+
     activated::
         plot.add_plot('temperature')
         plot.add_plot('heater_switch')
         plot.add_plot('heater_regulation')
+        app_state.observe('plot_update', plot._update_plots)
 
     Container:
 

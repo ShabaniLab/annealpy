@@ -1,12 +1,12 @@
 {
-    "device_id": "Dev0",
-    "heater_switch_id": "ao0",
+    "device_id": "Dev1",
+    "heater_switch_id": ["ai0", "ao0"],
     "heater_switch_on_value": 5.0,
-    "heater_switch_on_value": 0.0,
-    "heater_reg_id": "ao1'",
-    "heater_reg_max_value": 10.0,
-    "heater_reg_max_value": 0.0,
-    "temperature_id": "ai0",
+    "heater_switch_off_value": 0.0,
+    "heater_reg_id": ["ai1", "ao1"],
+    "heater_reg_max_value": 5.0,
+    "heater_reg_min_value": 0.0,
+    "temperature_id": "ai2",
     "temperature_conversion": {
     }
 }

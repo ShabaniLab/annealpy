@@ -11,7 +11,7 @@
 """
 from typing import Optional
 
-from atom.api import Atom, Bool, Dict, Float, Str, Typed, FloatRange, Tuple
+from atom.api import Atom, Bool, Dict, Float, Str, Typed, FloatRange, List
 
 try:
     import nidaqmx
@@ -42,13 +42,13 @@ class AnnealerDaq(Atom):
     #: The first channel is used to read the value using single end
     #: measurement, the second to set it.
     #: The user is responsible for setting up the proper jumper.
-    heater_switch_id = Tuple(Str(), ('ai0', 'ao0'))
+    heater_switch_id = List(Str(), ['ai0', 'ao0'])
 
     #: Id of the channels used to control the heater current regulator.
     #: The first channel is used to read the value using single end
     #: measurement, the second to set it.
     #: The user is responsible for setting up the proper jumper.
-    heater_reg_id = Tuple(Str(), ('ai1', 'ao1'))
+    heater_reg_id = List(Str(), ['ai1', 'ao1'])
 
     #: Id of the channel used to read the temperature. This measurement is done
     #: using a differential channel (So in the default case ai2 is the positive
@@ -200,8 +200,9 @@ class AnnealerDaq(Atom):
             raise RuntimeError(msg)
 
         value = self._tasks['heater_reg'][0].read()
-        return ((value - self.heater_reg_min_value) /
-                (self.heater_reg_max_value - self.heater_reg_min_value))
+        return round(((value - self.heater_reg_min_value) /
+                     (self.heater_reg_max_value - self.heater_reg_min_value)),
+                     2)
 
     def _post_validate_heater_reg_state(self,
                                         old: Optional[float],

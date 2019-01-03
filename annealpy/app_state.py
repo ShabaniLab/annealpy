@@ -187,23 +187,25 @@ class ApplicationState(Atom):
 
         """
         self._stop_timer = False
-        self._fire_plot_update()
+        self._fire_plot_update(schedule_only=True)
 
     def stop_plot_timer(self):
         """Stop the recurring timer that fire the plot_update event.
 
         """
         self._stop_timer = True
+
     # --- Private API ---------------------------------------------------------
 
     #: Boolean indicating the timer not to re-schedule itself.
     _stop_timer = Bool()
 
-    def _fire_plot_update(self):
+    def _fire_plot_update(self, schedule_only=False):
         """Fire the plot update event and reschedule a new call.
 
         """
-        self.plot_update = True
+        if not schedule_only:
+            self.plot_update = True
         if not self._stop_timer:
             timed_call(1000*self.plot_refresh_interval, self._fire_plot_update)
 

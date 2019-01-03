@@ -75,7 +75,7 @@ class DualAxisPyqtGraphWidget(RawWidget):
             return
 
         curve = self._curves[id]
-        plot = self._left_plot if id == 'temperature' else self._right_plot
+        plot = self._left_plot if id != 'temperature' else self._right_plot
         plot.removeItem(curve)
 
     # --- Private API ---------------------------------------------------------
@@ -96,6 +96,8 @@ class DualAxisPyqtGraphWidget(RawWidget):
         """Update the data of the plots.
 
         """
+        if self.app_state.temperature.current_index == 0:
+            return
         time = None
 
         if 'temperature' in self._curves:

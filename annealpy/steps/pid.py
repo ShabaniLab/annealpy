@@ -67,7 +67,7 @@ class PID(Atom):
         self._last_error = error
 
         return (self.parameter_p*error + self.parameter_i*self._error_int +
-                self.parameter_d * self.d_term)
+                self.parameter_d * d_term)
 
     def reset(self):
         """Reset the PID history.

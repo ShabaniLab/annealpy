@@ -36,8 +36,8 @@ class PIDRegulatedStep(BaseStep):
     #: Total duration of the step in s, including any initial settling time.
     duration = Float().tag(pref=True)
 
-    #: Time interval at which to update the PID answer.
-    interval = Float().tag(pref=True)
+    #: Time interval at which to update the PID answer in s.
+    interval = Float(.1).tag(pref=True)
 
     def run(self, actuator):
         """Use a PID to regulated the temperature.
@@ -56,11 +56,11 @@ class PIDRegulatedStep(BaseStep):
         while True:
 
             current_time = time.time()
-            if stop - current_time > 0:
+            if stop - current_time < 0 or actuator.stop_event.is_set():
                 break
 
             temp = actuator.read_temperature()
             feedback = pid.compute_new_output(current_time, temp)
-            actuator.heater_reg_state = max(0, min(feedback, 1))
+            actuator.heater_reg_state = max(0.0, min(feedback, 1.0))
 
             time.sleep(min(self.interval, stop - current_time))

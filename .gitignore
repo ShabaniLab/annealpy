@@ -4,6 +4,9 @@ __pycache__/
 *$py.class
 __enamlcache__/
 
+# memory of the app
+config.json
+
 # C extensions
 *.so
 
