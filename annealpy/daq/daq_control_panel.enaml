@@ -60,9 +60,9 @@ enamldef DAQDialog(Dialog):
                             'Off')
                 hs_fld_read.text = new_text
         Field: hs_fld_write:
-            pass
+            placeholder = 'Off or On'
         PushButton: hs_btn_write:
-            text = 'write'
+            text = 'Write'
             clicked ::
                 value = (True if hs_fld_write.text in ('on', 'ON', 'On') else
                          False)
@@ -80,6 +80,6 @@ enamldef DAQDialog(Dialog):
         FloatField: hr_fld_write:
             pass
         PushButton: hr_btn_write:
-            text = 'write'
+            text = 'Write'
             clicked ::
                 daq_control.heater_reg_state = hr_fld_write.value

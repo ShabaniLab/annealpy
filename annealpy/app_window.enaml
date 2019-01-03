@@ -26,6 +26,8 @@ enamldef AppWindow(MainWindow): main:
 
     title = 'Annealer controller'
 
+    initial_size = (1600, 800)
+
     MenuBar:
         Menu:
             title = 'Process'
@@ -51,14 +53,15 @@ enamldef AppWindow(MainWindow): main:
             Action:
                 text = 'Open test dialog'
                 triggered::
-                    DAQDialog(self).exec_()
+                    DAQDialog(main).exec_()
 
     StatusBar: status:
         pass
 
     Container:
         DockArea:
-            layout = HSplitLayout('process_item', 'plotting_item')
+            layout = HSplitLayout('process_item', 'plotting_item',
+                                  sizes=[800, 1600])
 
             ProcessDockItem: process_item:
                 name = 'process_item'

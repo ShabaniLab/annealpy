@@ -50,7 +50,7 @@ class ChannelStatus(Atom):
         self.times = np.empty(initial_size)
         self.values = np.empty(initial_size, type)
         self.allocated_size = initial_size
-        self.current_index = min(self.allocated_size - 1, 100)
+        # self.current_index = min(self.allocated_size - 1, 100)
 
     def add_first_value(self, value):
         """Add a first value in the records.

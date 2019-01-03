@@ -11,7 +11,7 @@
 """
 from typing import Optional
 
-from atom.api import Atom, Bool, Dict, Float, Str, Typed, FloatRange
+from atom.api import Atom, Bool, Dict, Float, Str, Typed, FloatRange, Tuple
 
 try:
     import nidaqmx
@@ -21,7 +21,7 @@ except ImportError:
 
 
 class AnnealerDaq(Atom):
-    """Annealer controller through a NI-DAQ 6003.
+    """Annealer controller through a NI-DAQ 6008.
 
     The annealer control relies on the use of three channels:
     - one input channel is used to read the temperature measured by a
@@ -36,16 +36,25 @@ class AnnealerDaq(Atom):
 
     """
     #: Id of the NI-DAQ used to control the annealer.
-    device_id = Str('Dev0')
+    device_id = Str('Dev1')
 
     #: Id of the channel used to control the heater switch.
-    heater_switch_id = Str('ao0')
+    #: The first channel is used to read the value using single end
+    #: measurement, the second to set it.
+    #: The user is responsible for setting up the proper jumper.
+    heater_switch_id = Tuple(Str(), ('ai0', 'ao0'))
 
-    #: Id of the channel used to control the heater current regulator.
-    heater_reg_id = Str('ao1')
+    #: Id of the channels used to control the heater current regulator.
+    #: The first channel is used to read the value using single end
+    #: measurement, the second to set it.
+    #: The user is responsible for setting up the proper jumper.
+    heater_reg_id = Tuple(Str(), ('ai1', 'ao1'))
 
-    #: Id of the channel used to read the temperature.
-    temperature_id = Str('ai0')
+    #: Id of the channel used to read the temperature. This measurement is done
+    #: using a differential channel (So in the default case ai2 is the positive
+    #: side and ai6 is the negative one, refer to the daq documentation for
+    #: more details).
+    temperature_id = Str('ai2')
 
     #: State of the heater switch. Changing this value directly affects the
     #: hardware.
@@ -62,10 +71,10 @@ class AnnealerDaq(Atom):
     heater_reg_state = FloatRange(low=0.0, high=1.0)
 
     #: Maximal value that can be used by the regulator.
-    heater_reg_max_value = FloatRange(low=-10.0, high=10.0)
+    heater_reg_max_value = FloatRange(low=0.0, high=5.0, value=5.0)
 
     #: Minimal value that can be used by the regulator.
-    heater_reg_min_value = FloatRange(low=-10.0, high=10.0)
+    heater_reg_min_value = FloatRange(low=0.0, high=5.0)
 
     def __init__(self, config: dict) -> None:
         for attr in ('device_id', 'heater_switch_id',
@@ -78,24 +87,45 @@ class AnnealerDaq(Atom):
             return
         # Validate that the device we will use exist.
         devices = nidaqmx.system.System.local().devices
-        if self.device_id not in devices:
+        if self.device_id not in devices.device_names:
             raise ValueError(f'The specified device {self.device_id} does not'
-                             f' exist. Existing devices are {devices}')
+                             f' exist. Existing devices are {list(devices)}')
 
         # Create one task per channel we need to control.
         for task_id, ch_id in [('heater_switch', 'heater_switch_id'),
                                ('heater_reg', 'heater_reg_id'),
                                ('temperature', 'temperature_id')]:
-            task = nidaqmx.Task()
-            self._tasks[task_id] = task
+
             if task_id == 'temperature':
-                task.add_ai_voltage_chan(self.device_id + '/' + ch_id)
+                full_id = self.device_id + '/' + getattr(self, ch_id)
+                task = nidaqmx.Task()
+                self._tasks[task_id] = task
+                mode = nidaqmx.constants.TerminalConfiguration.DIFFERENTIAL
+                task.ai_channels.add_ai_voltage_chan(full_id,
+                                                     terminal_config=mode)
             else:
-                task.add_ao_voltage_chan(self.device_id + '/' + ch_id)
+                tasks = (nidaqmx.Task(), nidaqmx.Task())
+                self._tasks[task_id] = tasks
+
+                # Input channel
+                full_id = self.device_id + '/' + getattr(self, ch_id)[0]
+                mode = nidaqmx.constants.TerminalConfiguration.RSE
+                tasks[0].ai_channels.add_ai_voltage_chan(full_id,
+                                                         terminal_config=mode)
+
+                # Output channel
+                full_id = self.device_id + '/' + getattr(self, ch_id)[1]
+                tasks[1].ao_channels.add_ao_voltage_chan(full_id,
+                                                         min_val=0,
+                                                         max_val=5)
 
     def finalize(self) -> None:
-        for t in self._tasks:
-            t.close()
+        for t in self._tasks.values():
+            if isinstance(t, (tuple, list)):
+                for st in t:
+                    st.close()
+            else:
+                t.close()
 
     def read_temperature(self) -> float:
         """Read the temperature measured by the DAQ.
@@ -119,7 +149,7 @@ class AnnealerDaq(Atom):
     # --- Private API ---------------------------------------------------------
 
     #: NiDAQ tasks used to control the physical DAQ
-    _tasks = Dict(Str(), Typed(nidaqmx.Task))
+    _tasks = Dict(Str())
 
     def _default_heater_switch_state(self) -> bool:
         """Get the value from the DAQ on first read.
@@ -133,8 +163,8 @@ class AnnealerDaq(Atom):
                    'reading the heater switch state by calling `initialize`')
             raise RuntimeError(msg)
 
-        value = self._tasks['heater_switch'].read()
-        return abs(value - self.heater_switch_on_value) < 1e-3
+        value = self._tasks['heater_switch'][0].read()
+        return abs(value - self.heater_switch_on_value) < 1e-1
 
     def _post_validate_heater_switch_state(self,
                                            old: Optional[bool],
@@ -151,9 +181,9 @@ class AnnealerDaq(Atom):
             raise RuntimeError(msg)
 
         if new:
-            self._tasks['heater_switch'].write(self.heater_switch_on_value)
+            self._tasks['heater_switch'][1].write(self.heater_switch_on_value)
         else:
-            self._tasks['heater_switch'].write(self.heater_switch_off_value)
+            self._tasks['heater_switch'][1].write(self.heater_switch_off_value)
         return new
 
     def _default_heater_reg_state(self) -> float:
@@ -169,7 +199,7 @@ class AnnealerDaq(Atom):
                    )
             raise RuntimeError(msg)
 
-        value = self._tasks['heater_reg'].read()
+        value = self._tasks['heater_reg'][0].read()
         return ((value - self.heater_reg_min_value) /
                 (self.heater_reg_max_value - self.heater_reg_min_value))
 
@@ -190,5 +220,5 @@ class AnnealerDaq(Atom):
 
         value = (new*(self.heater_reg_max_value - self.heater_reg_min_value) +
                  self.heater_reg_min_value)
-        self._tasks['heater_switch'].write(value)
+        self._tasks['heater_reg'][1].write(value)
         return new
