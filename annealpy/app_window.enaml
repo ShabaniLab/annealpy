@@ -16,6 +16,7 @@ from enaml.layout.api import HSplitLayout
 from .daq.daq_control_panel import DAQDialog
 from .plotting.plotting_dock import PlottingDockItem
 from .process_dock import ProcessDockItem
+from .app_pref_window import AppPreferencesDialog
 
 
 enamldef AppWindow(MainWindow): main:
@@ -29,6 +30,24 @@ enamldef AppWindow(MainWindow): main:
     initial_size = (1600, 800)
 
     MenuBar:
+        Menu:
+            title = 'Application'
+            Action:
+                text = 'Preferences'
+                triggered::
+                    kwargs = dict(daq_config_path=app_state.daq_config_path,
+                                  plot_refresh_interval=
+                                      app_state.plot_refresh_interval,
+                                  plot_colors=app_state.plot_colors)
+                    dial = AppPreferencesDialog(**kwargs)
+                    dial.exec_()
+                    if dial.result:
+                        p = dial.preferences
+                        app_state.daq_config_path = p['daq_config_path']
+                        app_state.plot_refresh_interval =\
+                            p['plot_refresh_interval']
+                        app_state.plot_colors = p['plot_colors']
+
         Menu:
             title = 'Process'
             Action:

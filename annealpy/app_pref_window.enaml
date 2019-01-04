@@ -1,0 +1,121 @@
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# Copyright 2019 by AnnealPy Authors, see AUTHORS for more details.
+#
+# Distributed under the terms of the BSD 3-Clause license.
+#
+# The full license is in the file LICENCE, distributed with this software.
+# -----------------------------------------------------------------------------
+"""Dialog preference edition.
+
+"""
+from enaml.widgets.api import (Dialog, Container, ColorDialog, FileDialogEx,
+                               Field, PushButton, Label, GroupBox)
+from enaml.layout.api import hbox, vbox, spacer
+from enaml.stdlib.fields import FloatField
+
+
+def color_to_hex(color):
+    """Convert an enaml.Color to hex format.
+
+    """
+    return '#{:02x}{:02x}{:02x}'.format(color.red, color.green, color.blue)
+
+
+enamldef ColorSelection(Container): main:
+    """Container used to select a color.
+
+    """
+    #: Str describing the use of the color.
+    alias label : c_lab.text
+
+    #: Color selected by the system
+    attr color
+
+    constraints = [hbox(c_lab, c_fld, c_btn),
+                   c_fld.width == c_btn.width]
+
+    Label: c_lab:
+        pass
+    Label: c_fld:
+        background << color
+    PushButton: c_btn:
+        text = 'Select'
+        clicked ::
+            res = ColorDialog.get_color(self, current_color=main.color)
+            if res:
+                main.color = color_to_hex(res)
+
+
+enamldef AppPreferencesDialog(Dialog): dial:
+    """Dialog to edit the application preferences.
+
+    """
+    #: Path at which the daq config path is located.
+    attr daq_config_path : str
+
+    #: Refresh interval of the plot in s.
+    attr plot_refresh_interval : float
+
+    #: Colors to use in the plots.
+    attr plot_colors : dict
+
+    #: Preferences stored in a dictionary. This is updated if the dialog is
+    #: accepted.
+    attr preferences : dict
+
+    accepted::
+        self.preferences = {'daq_config_path': daq_config_path,
+                            'plot_refresh_interval': plot_refresh_interval,
+                            'plot_colors': {'temperature': t_col.color,
+                                            'heater_switch': hs_col.color,
+                                            'heater_regulation': hr_col.color,}}
+
+    Container:
+
+        constraints = [vbox(hbox(d_lab, d_fld, d_btn),
+                           hbox(p_lab, p_fld),
+                           col_sel,
+                           hbox(spacer, can, ok))]
+
+        Label: d_lab:
+            text = 'DAQ config path'
+        Field: d_fld:
+            read_only = True
+            text << daq_config_path
+        PushButton: d_btn:
+            text = 'Select'
+            clicked::
+                path = FileDialogEx.get_open_file_name(self,
+                                                       name_filters=['*json'])
+                if path:
+                    dial.daq_config_path = path
+
+        Label: p_lab:
+            text = 'Plot refresh interval'
+        FloatField: p_fld:
+            value := dial.plot_refresh_interval
+
+        GroupBox: col_sel:
+
+            title = 'Plot colors'
+
+            ColorSelection: t_col:
+                label = 'Temperature'
+                color = plot_colors['temperature']
+            ColorSelection: hs_col:
+                label = 'State of the heater switch'
+                color = plot_colors['heater_switch']
+            ColorSelection: hr_col:
+                label = 'State of the heater regulation'
+                color = plot_colors['heater_regulation']
+
+        PushButton: can:
+            text = 'Cancel'
+            clicked::
+                dial.reject()
+        PushButton: ok:
+            text = 'Ok'
+            clicked::
+                dial.accept()
+

@@ -13,7 +13,7 @@ import os
 import json
 
 import numpy as np
-from atom.api import Atom, Enum, Int, Str, Typed, Event, Bool, Float
+from atom.api import Atom, Enum, Int, Str, Typed, Event, Bool, Float, Dict
 from enaml.application import timed_call
 
 from .process import AnnealerProcess
@@ -125,6 +125,12 @@ class ApplicationState(Atom):
 
     #: Plot refresh interval in s.
     plot_refresh_interval = Float(2).tag(pref=True)
+
+    #: Plot colors.
+    plot_colors = Typed(dict, ({'temperature': '#f9f9f9',
+                                'heater_switch': '#9bceee',
+                                'heater_regulation': '#59c3b1'},)
+                        ).tag(pref=True)
 
     #: Process being edited/run
     process = Typed(AnnealerProcess, ())

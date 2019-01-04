@@ -45,10 +45,12 @@ enamldef PlottingDockItem(DockItem): main:
         DualAxisPyqtGraphWidget: temp_plot:
             app_state = main.app_state
             visible << t_ch.checked
+            colors << app_state.plot_colors
 
         DualAxisPyqtGraphWidget: heater_plot:
             app_state = main.app_state
             visible << s_ch.checked or r_ch.checked
+            colors << app_state.plot_colors
 
         CheckBox: t_ch:
             text = 'Temperature'

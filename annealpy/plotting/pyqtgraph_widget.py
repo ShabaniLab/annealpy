@@ -30,6 +30,9 @@ class DualAxisPyqtGraphWidget(RawWidget):
     #: Reference to the application state.
     app_state = d_(Typed(ApplicationState))
 
+    #: Colors to use for the plots.
+    colors = d_(Dict())
+
     hug_width = set_default('ignore')
     hug_height = set_default('ignore')
 
@@ -62,7 +65,7 @@ class DualAxisPyqtGraphWidget(RawWidget):
 
         legend_name = id.capitalize().replace('_', " ")
         curve = pg.PlotCurveItem(name=legend_name,
-                                 pen=pg.mkPen(color=COLORS[id], width=1))
+                                 pen=pg.mkPen(color=self.colors[id], width=1))
         curve.setData(x=time, y=data)
         self._curves[id] = curve
 
@@ -83,6 +86,13 @@ class DualAxisPyqtGraphWidget(RawWidget):
     _curves = Dict()
 
     _plot = Value()
+
+    def _observe_colors(self, change):
+        """Update the plots colors.
+
+        """
+        for c_id, c_obj in self._curves.items():
+            c_obj.setPen(color=self.colors[c_id], width=1)
 
     def _update_plots(self, change):
         """Update the data of the plots.
