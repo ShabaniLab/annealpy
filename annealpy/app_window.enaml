@@ -65,7 +65,7 @@ enamldef AppWindow(MainWindow): main:
 
             ProcessDockItem: process_item:
                 name = 'process_item'
-                process << app_state.process
+                process := app_state.process
             PlottingDockItem:
                 name = 'plotting_item'
                 app_state = main.app_state

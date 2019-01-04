@@ -61,14 +61,14 @@ enamldef StepEditionMenu(Menu):
         Action:
             text = 'Add before'
             triggered::
-                dial = StepSelectionDialog(self.parent.parent)
+                dial = StepSelectionDialog(self.root_object())
                 dial.exec_()
                 if dial.result:
                     process.add_step(index, STEPS[dial.step]())
         Action:
             text = 'Add after'
             triggered::
-                dial = StepSelectionDialog(self.parent.parent)
+                dial = StepSelectionDialog(self.root_object())
                 dial.exec_()
                 if dial.result:
                     process.add_step(index+1, STEPS[dial.step]())
@@ -161,8 +161,8 @@ enamldef ProcessDockItem(DockItem):
     closable = False
 
     func save():
-        if app_state.process.path:
-            app.state.process.save()
+        if process.path:
+            process.save()
             status_bar = self.root_object().status_bar()
             status_bar.show_message('Saved current process', 5000)
         else:
@@ -181,7 +181,7 @@ enamldef ProcessDockItem(DockItem):
     func load():
         path = FileDialogEx.get_open_file_name(self, name_filters=['*.json'])
         if path:
-            self.process = AnnealerProcess.load(path)
+            app_state.process = AnnealerProcess.load(path)
             status_bar = self.root_object().status_bar()
             status_bar.show_message('Loaded process from {}'.format(path),
                                     5000)

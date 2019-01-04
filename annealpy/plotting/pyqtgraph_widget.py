@@ -10,12 +10,17 @@
 
 """
 import pyqtgraph as pg
-from atom.api import Typed, Dict, Value, set_default
+from atom.api import Typed, Dict, Value, List, Enum, set_default
 from enaml.core.api import d_
 from enaml.layout.api import hbox, vbox, spacer
 from enaml.widgets.api import RawWidget
 
 from ..app_state import ApplicationState
+
+
+COLORS = {'temperature': 'w',
+          'heater_switch': 'b',
+          'heater_regulation': 'r'}
 
 
 class DualAxisPyqtGraphWidget(RawWidget):
@@ -33,19 +38,9 @@ class DualAxisPyqtGraphWidget(RawWidget):
 
         """
         widget = pg.PlotWidget(parent)
-        left_plot = widget.plotItem
-        left_plot.setLabels(left='Temperature (C)')
-        self._left_plot = left_plot
-
-        # create a new ViewBox, link the right axis to its coordinate system
-        right_plot = pg.ViewBox()
-        left_plot.showAxis('right')
-        left_plot.scene().addItem(right_plot)
-        left_plot.getAxis('right').linkToView(right_plot)
-        right_plot.setXLink(left_plot)
-        left_plot.getAxis('right').setLabel('Heater state', color='#0000ff')
-        right_plot.setYRange(0, 1)
-        self._right_plot = right_plot
+        plot = widget.plotItem
+        plot.addLegend()
+        self._plot = plot
 
         return widget
 
@@ -54,18 +49,24 @@ class DualAxisPyqtGraphWidget(RawWidget):
 
         """
         time = None
-        if id != 'temperature' and 'temperature' in self._curves:
+        if id != 'temperature':
             temp = self.app_state.temperature
             time = temp.times[temp.current_index - 1]
 
+        left_label = ('Temperature (C)'
+                      if id == 'temperature' else
+                      'Heater state %')
+        self._plot.setLabels(bottom='Time (s)', left=left_label)
+
         time, data = getattr(self.app_state, id).get_data(time)
 
-        curve = pg.PlotCurveItem(namepen=pg.mkPen(color='#025b94', width=1))
+        legend_name = id.capitalize().replace('_', " ")
+        curve = pg.PlotCurveItem(name=legend_name,
+                                 pen=pg.mkPen(color=COLORS[id], width=1))
         curve.setData(x=time, y=data)
         self._curves[id] = curve
 
-        plot = self._left_plot if id == 'temperature' else self._right_plot
-        plot.addItem(curve)
+        self._plot.addItem(curve)
 
     def remove_plot(self, id):
         """Remove a plot.
@@ -75,22 +76,13 @@ class DualAxisPyqtGraphWidget(RawWidget):
             return
 
         curve = self._curves[id]
-        plot = self._left_plot if id != 'temperature' else self._right_plot
-        plot.removeItem(curve)
+        self._plot.removeItem(curve)
 
     # --- Private API ---------------------------------------------------------
 
     _curves = Dict()
 
-    _left_plot = Value()
-
-    _right_plot = Value()
-
-    def _post_setattr_app_state(self, old, new):
-        """Start observing the plot_update event when the app_state is set.
-
-        """
-        new.observe('plot_update', self._update_plots)
+    _plot = Value()
 
     def _update_plots(self, change):
         """Update the data of the plots.
@@ -98,7 +90,7 @@ class DualAxisPyqtGraphWidget(RawWidget):
         """
         if self.app_state.temperature.current_index == 0:
             return
-        time = None
+        time = [None]
 
         if 'temperature' in self._curves:
             time, data = self.app_state.temperature.get_data()
@@ -106,8 +98,10 @@ class DualAxisPyqtGraphWidget(RawWidget):
 
         if 'heater_switch' in self._curves:
             time, data = self.app_state.heater_switch.get_data(time[-1])
+            print(time, data)
             self._curves['heater_switch'].setData(x=time, y=data)
 
         if 'heater_regulation' in self._curves:
-            time, data = self.app_state.heater_regulation.get_data()
+            time, data = self.app_state.heater_regulation.get_data(time[-1])
+            print(time, data)
             self._curves['heater_regulation'].setData(x=time, y=data)

@@ -25,26 +25,34 @@ enamldef PlottingDockItem(DockItem): main:
     closable = False
 
     activated::
-        plot.add_plot('temperature')
-        plot.add_plot('heater_switch')
-        plot.add_plot('heater_regulation')
-        app_state.observe('plot_update', plot._update_plots)
+        temp_plot.add_plot('temperature')
+        heater_plot.add_plot('heater_switch')
+        heater_plot.add_plot('heater_regulation')
+        app_state.observe('plot_update', temp_plot._update_plots)
+        app_state.observe('plot_update', heater_plot._update_plots)
 
     Container:
 
-        constraints = [vbox(plot, hbox(t_ch, spacer, s_ch, spacer, r_ch))]
+        constraints << ([vbox(temp_plot.when(temp_plot.visible),
+                              heater_plot.when(heater_plot.visible),
+                              hbox(t_ch, spacer, s_ch, spacer, r_ch))
+                         ] +
+                         ([temp_plot.height == heater_plot.height]
+                           if temp_plot.visible and heater_plot.visible else
+                           [])
+                        )
 
-        DualAxisPyqtGraphWidget: plot:
+        DualAxisPyqtGraphWidget: temp_plot:
             app_state = main.app_state
+            visible << t_ch.checked
+
+        DualAxisPyqtGraphWidget: heater_plot:
+            app_state = main.app_state
+            visible << s_ch.checked or r_ch.checked
 
         CheckBox: t_ch:
             text = 'Temperature'
             checked = True
-            toggled::
-                if checked:
-                    plot.add_plot('temperature')
-                else:
-                    plot.remove_plot('temperature')
 
         CheckBox: s_ch:
             text = 'Heater switch'
