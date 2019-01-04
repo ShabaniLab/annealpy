@@ -11,15 +11,18 @@ import enaml
 from .base_step import BaseStep
 from .fast_ramp import FastRamp
 from .pid_regulated_step import PIDRegulatedStep
+from .stop_heating_step import StopHeatingStep
 
 with enaml.imports():
     from .views.pid_regulated_step_view import PIDRegulatedStepView
+    from.views.stop_heating_step_view import StopHeatingStepView
 
-STEPS = {'FastRamp': FastRamp,
+STEPS = {'StopHeatingStep': StopHeatingStep,
          'PIDRegulatedStep': PIDRegulatedStep}
 
 
-_STEP_VIEWS = {PIDRegulatedStep: PIDRegulatedStepView}
+_STEP_VIEWS = {PIDRegulatedStep: PIDRegulatedStepView,
+               StopHeatingStep: StopHeatingStepView}
 
 
 def create_widget(step):

@@ -7,15 +7,17 @@
 # The full license is in the file LICENCE, distributed with this software.
 # -----------------------------------------------------------------------------
 from enaml.layout.api import hbox, vbox, align, grid, spacer
-from enaml.widgets.api import Container, Label, CheckBox, GroupBox
+from enaml.widgets.api import Label, CheckBox, GroupBox
 from enaml.stdlib.fields import FloatField
 
 
-enamldef PIDRegulatedStepView(Container):
+enamldef PIDRegulatedStepView(GroupBox):
     """View for a regulated step.
 
     """
     attr step
+
+    title = "PID regulated step"
 
     constraints << ([vbox(grid((tg_lab, tg_val), (du_lab, du_val)),
                           hbox(adv_box, spacer), adv_set)]
