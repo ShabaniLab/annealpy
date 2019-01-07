@@ -162,7 +162,9 @@ class ApplicationState(Atom):
             with open(path) as f:
                 config = json.load(f)
             for name, member in self.members().items():
-                if member.metadata and 'pref' in member.metadata:
+                if (member.metadata and
+                        'pref' in member.metadata and
+                        name in config):
                     setattr(self, name, config[name])
 
         else:
