@@ -116,7 +116,6 @@ class ActuatorSubprocess(Process):
             self.start_time = time.time()
             # Initialize the values by forcing a notification in the queue
             self.read_temperature()
-            self.heater_switch_state = self.heater_switch_state
             self.heater_reg_state = self.heater_reg_state
 
             for s in p.steps:
@@ -247,7 +246,6 @@ class AnnealerProcess(Atom):
 
         #: Reset the plots data
         app_state.temperature.current_index = 0
-        app_state.heater_switch.current_index = 0
         app_state.heater_regulation.current_index = 0
 
         self._actuator = ActuatorSubprocess(self.path,
