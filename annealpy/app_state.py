@@ -128,7 +128,6 @@ class ApplicationState(Atom):
 
     #: Plot colors.
     plot_colors = Typed(dict, ({'temperature': '#f9f9f9',
-                                'heater_switch': '#9bceee',
                                 'heater_regulation': '#59c3b1'},)
                         ).tag(pref=True)
 
@@ -137,9 +136,6 @@ class ApplicationState(Atom):
 
     #: Measured temperature over time
     temperature = Typed(ChannelStatus, (np.float, 'continuous', 36000))
-
-    #: Heater switch state over time
-    heater_switch = Typed(ChannelStatus, (np.int, 'stepped', 10000))
 
     #: Measured temperature over time
     heater_regulation = Typed(ChannelStatus, (np.float, 'stepped', 10000))

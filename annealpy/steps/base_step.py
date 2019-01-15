@@ -22,7 +22,6 @@ class BaseStep(Atom):
 
         The actuator allows to control the state of the system and provides
         the following attributes and methods:
-        - heater_switch_state: boolean attribute
         - heater_reg_state: float attribute
         - read_temperature: method taking no argument
         - stop_event: event object signaling to end prematurely

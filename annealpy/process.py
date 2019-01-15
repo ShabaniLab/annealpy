@@ -140,18 +140,6 @@ class ActuatorSubprocess(Process):
         return temp
 
     @property
-    def heater_switch_state(self):
-        """State of the heater switch controlled by the DAQ.
-
-        """
-        return self._daq.heater_switch_state
-
-    @heater_switch_state.setter
-    def heater_switch_state(self, value):
-        self._daq.heater_switch_state = value
-        self.queue.put(('heater_switch', time.time() - self.start_time, value))
-
-    @property
     def heater_reg_state(self):
         """tate of the heater regulation controlled by the DAQ.
 

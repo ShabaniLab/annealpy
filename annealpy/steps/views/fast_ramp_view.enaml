@@ -36,9 +36,11 @@ enamldef FastRampView(GroupBox):
         value := step.target_temperature
 
     Label: er_lab:
-        text = 'Allowed error (C)'
+        text = 'Regulation threshold'
     FloatField: er_val:
-        value := step.allowed_error
+        value := step.regulation_threshold
+        tool_tip = ('Fraction of the target value at which to start the PID '
+                    'regulation.')
 
     Label: du_lab:
         text = 'Duration (s)'
@@ -51,21 +53,14 @@ enamldef FastRampView(GroupBox):
     GroupBox: adv_set:
         title = 'Advanced settings'
         visible << adv_box.checked
-        constraints = [grid((cy_lab, cy_val), (si_lab, si_val),
+        constraints = [grid((si_lab, si_val),
                             (p_lab, p_val), (i_lab, i_val), (d_lab, d_val),
                             (int_lab, int_val))]
 
-        Label: cy_lab:
-            text = 'Number of on/off cycles'
-        IntField: cy_val:
-            value := step.on_off_cycles
-            tool_tip = ('Number of on/off cycles (around target temp) used to'
-                        'determine the average power required.')
-
         Label: si_lab:
-            text = 'Switch interval (s)'
+            text = 'Ramp interval (s)'
         FloatField: si_val:
-            value := step.parameter_p
+            value := step.ramp_interval
 
         Label: p_lab:
             text = 'PID P'

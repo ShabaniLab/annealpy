@@ -68,8 +68,8 @@ enamldef AppPreferencesDialog(Dialog): dial:
         self.preferences = {'daq_config_path': daq_config_path,
                             'plot_refresh_interval': plot_refresh_interval,
                             'plot_colors': {'temperature': t_col.color,
-                                            'heater_switch': hs_col.color,
-                                            'heater_regulation': hr_col.color,}}
+                                            'heater_regulation': hr_col.color,}
+                            }
 
     Container:
 
@@ -103,9 +103,6 @@ enamldef AppPreferencesDialog(Dialog): dial:
             ColorSelection: t_col:
                 label = 'Temperature'
                 color = plot_colors['temperature']
-            ColorSelection: hs_col:
-                label = 'State of the heater switch'
-                color = plot_colors['heater_switch']
             ColorSelection: hr_col:
                 label = 'State of the heater regulation'
                 color = plot_colors['heater_regulation']

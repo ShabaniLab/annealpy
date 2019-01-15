@@ -26,23 +26,12 @@ class AnnealerDaq(Atom):
     The annealer control relies on the use of three channels:
     - one input channel is used to read the temperature measured by a
       thermocouple
-    - two output channels are used to control the heater:
-      - one actuates a swicth.
-      - the other actuates a current regulator.
-
-    The switch is meant to be used for fast temperature ramping, while the
-    regulator is meant to be used for slow ramps or when a stable temperature
-    is required over extended periods of time.
+    - one output channels are used to control the heater through a current
+      regulator.
 
     """
     #: Id of the NI-DAQ used to control the annealer.
     device_id = Str('Dev1')
-
-    #: Id of the channel used to control the heater switch.
-    #: The first channel is used to read the value using single end
-    #: measurement, the second to set it.
-    #: The user is responsible for setting up the proper jumper.
-    heater_switch_id = List(Str(), ['ai0', 'ao0'])
 
     #: Id of the channels used to control the heater current regulator.
     #: The first channel is used to read the value using single end
@@ -56,16 +45,6 @@ class AnnealerDaq(Atom):
     #: more details).
     temperature_id = Str('ai2')
 
-    #: State of the heater switch. Changing this value directly affects the
-    #: hardware.
-    heater_switch_state = Bool()
-
-    #: Value in V used to represent the on state of the heater switch.
-    heater_switch_on_value = Float(5.0)
-
-    #: Value in V used to represent the on state of the heater switch.
-    heater_switch_off_value = Float(0)
-
     #: State of the heater regulator. Changing this value directly affects the
     #: hardware.
     heater_reg_state = FloatRange(low=0.0, high=1.0)
@@ -77,7 +56,7 @@ class AnnealerDaq(Atom):
     heater_reg_min_value = FloatRange(low=0.0, high=5.0)
 
     def __init__(self, config: dict) -> None:
-        for attr in ('device_id', 'heater_switch_id',
+        for attr in ('device_id',
                      'heater_reg_id', 'temperature_id'):
             if attr in config:
                 setattr(self, attr, config[attr])
@@ -92,8 +71,7 @@ class AnnealerDaq(Atom):
                              f' exist. Existing devices are {list(devices)}')
 
         # Create one task per channel we need to control.
-        for task_id, ch_id in [('heater_switch', 'heater_switch_id'),
-                               ('heater_reg', 'heater_reg_id'),
+        for task_id, ch_id in [('heater_reg', 'heater_reg_id'),
                                ('temperature', 'temperature_id')]:
 
             if task_id == 'temperature':
@@ -150,41 +128,6 @@ class AnnealerDaq(Atom):
 
     #: NiDAQ tasks used to control the physical DAQ
     _tasks = Dict(Str())
-
-    def _default_heater_switch_state(self) -> bool:
-        """Get the value from the DAQ on first read.
-
-        """
-        if not nidaqmx:
-            return False
-
-        if 'heater_switch' not in self._tasks:
-            msg = ('The connection to the DAQ must be established prior to '
-                   'reading the heater switch state by calling `initialize`')
-            raise RuntimeError(msg)
-
-        value = self._tasks['heater_switch'][0].read()
-        return abs(value - self.heater_switch_on_value) < 1e-1
-
-    def _post_validate_heater_switch_state(self,
-                                           old: Optional[bool],
-                                           new: bool) -> bool:
-        """Try to update the DAQ when a valid value is passed.
-
-        """
-        if not nidaqmx:
-            return new
-
-        if 'heater_switch' not in self._tasks:
-            msg = ('The connection to the DAQ must be established prior to '
-                   'writing the heater switch state by calling `initialize`')
-            raise RuntimeError(msg)
-
-        if new:
-            self._tasks['heater_switch'][1].write(self.heater_switch_on_value)
-        else:
-            self._tasks['heater_switch'][1].write(self.heater_switch_off_value)
-        return new
 
     def _default_heater_reg_state(self) -> float:
         """Get the value from the DAQ on first read.

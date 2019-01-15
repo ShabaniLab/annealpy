@@ -24,4 +24,3 @@ class StopHeatingStep(BaseStep):
 
         """
         actuator.heater_reg_state = 0.0
-        actuator.heater_switch_state = False

@@ -27,7 +27,6 @@ enamldef PlottingDockItem(DockItem): main:
 
     activated::
         temp_plot.add_plot('temperature')
-        heater_plot.add_plot('heater_switch')
         heater_plot.add_plot('heater_regulation')
         app_state.observe('plot_update', temp_plot._update_plots)
         app_state.observe('plot_update', heater_plot._update_plots)
@@ -36,7 +35,7 @@ enamldef PlottingDockItem(DockItem): main:
 
         constraints << ([vbox(temp_plot.when(temp_plot.visible),
                               heater_plot.when(heater_plot.visible),
-                              hbox(t_ch, spacer, s_ch, spacer, r_ch))
+                              hbox(t_ch, spacer, r_ch))
                          ] +
                          ([temp_plot.height == heater_plot.height]
                            if temp_plot.visible and heater_plot.visible else
@@ -50,21 +49,12 @@ enamldef PlottingDockItem(DockItem): main:
 
         DualAxisPyqtGraphWidget: heater_plot:
             app_state = main.app_state
-            visible << s_ch.checked or r_ch.checked
+            visible << r_ch.checked
             colors << app_state.plot_colors
 
         CheckBox: t_ch:
             text = 'Temperature'
             checked = True
-
-        CheckBox: s_ch:
-            text = 'Heater switch'
-            checked = True
-            toggled::
-                if checked:
-                    plot.add_plot('heater_switch')
-                else:
-                    plot.remove_plot('heater_switch')
 
         CheckBox: r_ch:
             text = 'Heater regulation'

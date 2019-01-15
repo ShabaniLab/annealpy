@@ -19,7 +19,6 @@ from ..app_state import ApplicationState
 
 
 COLORS = {'temperature': 'w',
-          'heater_switch': 'b',
           'heater_regulation': 'r'}
 
 
@@ -105,11 +104,6 @@ class DualAxisPyqtGraphWidget(RawWidget):
         if 'temperature' in self._curves:
             time, data = self.app_state.temperature.get_data()
             self._curves['temperature'].setData(x=time, y=data)
-
-        if 'heater_switch' in self._curves:
-            time, data = self.app_state.heater_switch.get_data(time[-1])
-            print(time, data)
-            self._curves['heater_switch'].setData(x=time, y=data)
 
         if 'heater_regulation' in self._curves:
             time, data = self.app_state.heater_regulation.get_data(time[-1])

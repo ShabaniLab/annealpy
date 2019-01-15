@@ -40,7 +40,7 @@ class PIDRegulatedStep(BaseStep):
     interval = Float(.1).tag(pref=True)
 
     def run(self, actuator):
-        """Use a PID to regulated the temperature.
+        """Use a PID to regulate the temperature.
 
         """
         start = time.time()
@@ -50,8 +50,6 @@ class PIDRegulatedStep(BaseStep):
                   parameter_p=self.parameter_p,
                   parameter_i=self.parameter_i,
                   parameter_d=self.parameter_d)
-
-        actuator.heater_switch_state = True
 
         while True:
 

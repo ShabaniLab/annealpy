@@ -24,18 +24,15 @@ class FastRamp(BaseStep):
     #: Target temperature to reach in C.
     target_temperature = Float(200).tag(pref=True)
 
-    #: Allowed deviation from the target temperature when operating in
-    #: switching regulation mode.
-    allowed_error = Float(5).tag(pref=True)
+    #: Fraction of the temperature at which to start the PID regulator.
+    regulation_threshold = Float(0.9).tag(pref=True)
+
+    #: Time interval in s at which to check the temperature during the initial
+    #: ramp.
+    ramp_interval = Float(0.05).tag(pref=True)
 
     #: Duration of the PID settling time.
     duration = Float().tag(pref=True)
-
-    #: Number of on-off cycles before switching to the PID controller
-    on_off_cycles = Int().tag(pref=True)
-
-    #: Time interval at which to update the switch answer in s.
-    switch_interval = Float(.05).tag(pref=True)
 
     #: P parameter of the PID in Celsiusˆ-1
     parameter_p = Float().tag(pref=True)
@@ -53,10 +50,8 @@ class FastRamp(BaseStep):
         """Execute a fast ramp.
 
         First we use the maximum output power to reach the vicinity of the
-        target temperature as fast as possible. Next we do some cyles between
-        the lowest and highest allowed values to determine the effective output
-        power needed to stay at target. Finally we switch to a PID controller
-        to stabilize the temperature.
+        target temperature as fast as possible. Next we move to a PID
+        controller to stabilize the temperature.
 
         """
         pid = PID(target=self.target_temperature,
@@ -65,50 +60,24 @@ class FastRamp(BaseStep):
                   parameter_d=self.parameter_d)
 
         # Ramp quickly to the maximum allowed value
-        actuator.heater_switch_state = True
         actuator.heater_reg_state = 1.0
 
-        max_temp = self.target_temperature + self.allowed_error
-        min_temp = self.target_temperature - self.allowed_error
-
-        tic = None
-
+        threshold = self.target_temperature * self.regulation_threshold
+        last_temperature = None
+        last_time = None
         while True:
-            current_temp = actuator.temperature
-            if tic is None and current_temp > min_temp:
-                tic = time.time()
-            elif current_temp > max_temp:
+            current_temperature = actuator.read_temperature()
+            if current_temperature > threshold:
                 break
-            time.sleep(self.switch_interval)
+            last_temperature = current_temperature
+            last_time = time.time()
+            time.sleep(self.ramp_interval)
 
-        # Ramp down to minimum allowed value
-        toc = time.time()
-        on_time = toc - tic
-        actuator.heater_switch_state = False
-        while actuator.temperature > min_temp:
-            time.sleep(self.switch_interval)
-        tic = time.time()
-        off_time = tic - toc
+        # Provide the PID with the previously measured values
+        if last_time is not None:
+            pid.compute_new_output(last_time, last_temperature)
 
-        # Repeat the above as many times as requested
-        for i in range(self.on_off_cycles - 1):
-            actuator.heater_switch_state = True
-            while actuator.temperature < max_temp:
-                time.sleep(self.switch_interval)
-            toc = time.time()
-            on_time += toc - tic
-
-            actuator.heater_switch_state = False
-            while actuator.temperature > min_temp:
-                time.sleep(self.switch_interval)
-            tic = time.time()
-            off_time += tic - toc
-
-        # Use the on/off ratio to set the ouput power and start the PID
-        self.heater_reg_state = on_time/(on_time + off_time)
-        self.heater_switch_state = True
-
-        stop = tic + self.duration
+        stop = time.time() + self.duration
         while True:
 
             current_time = time.time()

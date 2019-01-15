@@ -73,6 +73,8 @@ class PID(Atom):
         """Reset the PID history.
 
         """
+        del self._last_error
+        del self._last_time
         del self._error_int
 
     # --- Private API ---------------------------------------------------------
