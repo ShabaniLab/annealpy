@@ -159,6 +159,7 @@ enamldef ProcessDockItem(DockItem):
     attr process
 
     closable = False
+    title = 'Process'
 
     func save():
         if process.path:

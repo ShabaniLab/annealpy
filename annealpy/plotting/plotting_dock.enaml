@@ -23,6 +23,7 @@ enamldef PlottingDockItem(DockItem): main:
     attr app_state
 
     closable = False
+    title = 'Live plots'
 
     activated::
         temp_plot.add_plot('temperature')
