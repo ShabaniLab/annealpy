@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# Copyright 2018 by AnnealPy Authors, see AUTHORS for more details.
+# Copyright 2018-2019 by AnnealPy Authors, see AUTHORS for more details.
 #
 # Distributed under the terms of the BSD 3-Clause license.
 #
@@ -60,12 +60,17 @@ class FastRamp(BaseStep):
                   parameter_d=self.parameter_d)
 
         # Ramp quickly to the maximum allowed value
-        actuator.heater_reg_state = 1.0
+        actuator.heater_volt_state = 1.0
+        actuator.heater_curr_state = 1.0
 
         threshold = self.target_temperature * self.regulation_threshold
         last_temperature = None
         last_time = None
         while True:
+            if actuator.stop_event.is_set():
+                return
+            actuator.read_heater_voltage()
+            actuator.read_heater_current()
             current_temperature = actuator.read_temperature()
             if current_temperature > threshold:
                 break
@@ -84,6 +89,8 @@ class FastRamp(BaseStep):
             if stop - current_time < 0 or actuator.stop_event.is_set():
                 break
 
+            actuator.read_heater_voltage()
+            actuator.read_heater_current()
             temp = actuator.read_temperature()
             feedback = pid.compute_new_output(current_time, temp)
             actuator.heater_reg_state = max(0.0, min(feedback, 1.0))

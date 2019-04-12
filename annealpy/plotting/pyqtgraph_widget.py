@@ -18,11 +18,14 @@ from enaml.widgets.api import RawWidget
 from ..app_state import ApplicationState
 
 
-COLORS = {'temperature': 'w',
-          'heater_regulation': 'r'}
+MEASURED_Q = ('temperature',
+              'measured_heater_voltage',
+              'measured_heater_current')
+
+NON_MEASURED_Q = ('heater_voltage_target', 'heater_current_target')
 
 
-class DualAxisPyqtGraphWidget(RawWidget):
+class PyqtGraphWidget(RawWidget):
     """PyqtGraph widget plotting the three monitored quantities.
 
     """
@@ -51,7 +54,7 @@ class DualAxisPyqtGraphWidget(RawWidget):
 
         """
         time = None
-        if id != 'temperature':
+        if id not in MEASURED_Q:
             temp = self.app_state.temperature
             time = temp.times[temp.current_index - 1]
 
@@ -101,11 +104,12 @@ class DualAxisPyqtGraphWidget(RawWidget):
             return
         time = [None]
 
-        if 'temperature' in self._curves:
-            time, data = self.app_state.temperature.get_data()
-            self._curves['temperature'].setData(x=time, y=data)
+        for nid in MEASURED_Q:
+            if nid in self._curves:
+                time, data = getattr(self.app_state, nid).get_data()
+                self._curves[nid].setData(x=time, y=data)
 
-        if 'heater_regulation' in self._curves:
-            time, data = self.app_state.heater_regulation.get_data(time[-1])
-            print(time, data)
-            self._curves['heater_regulation'].setData(x=time, y=data)
+        for nid in NON_MEASURED_Q:
+            if nid in self._curves:
+                time, data = getattr(self.app_state, nid).get_data(time[-1])
+                self._curves[nid].setData(x=time, y=data)

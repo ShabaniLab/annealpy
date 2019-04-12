@@ -65,10 +65,15 @@ enamldef AppPreferencesDialog(Dialog): dial:
     attr preferences : dict
 
     accepted::
+        colors = {'temperature': t_col.color,
+                  'measured_heater_voltage': mv_col.color,
+                  'measured_heater_current': mc_col.color,
+                  'heater_voltage_target': tv_col.color,
+                  'heater_current_target': tc_col.color,
+                  }
         self.preferences = {'daq_config_path': daq_config_path,
                             'plot_refresh_interval': plot_refresh_interval,
-                            'plot_colors': {'temperature': t_col.color,
-                                            'heater_regulation': hr_col.color,}
+                            'plot_colors': colors
                             }
 
     Container:
@@ -103,9 +108,18 @@ enamldef AppPreferencesDialog(Dialog): dial:
             ColorSelection: t_col:
                 label = 'Temperature'
                 color = plot_colors['temperature']
-            ColorSelection: hr_col:
-                label = 'State of the heater regulation'
-                color = plot_colors['heater_regulation']
+            ColorSelection: mv_col:
+                label = 'Measured heater voltage'
+                color = plot_colors['measured_heater_voltage']
+            ColorSelection: mc_col:
+                label = 'Measured heater current'
+                color = plot_colors['measured_heater_current']
+            ColorSelection: tv_col:
+                label = 'Heater target voltage'
+                color = plot_colors['heater_voltage_target']
+            ColorSelection: tc_col:
+                label = 'Heater target current'
+                color = plot_colors['heater_current_target']
 
         PushButton: can:
             text = 'Cancel'
@@ -115,4 +129,3 @@ enamldef AppPreferencesDialog(Dialog): dial:
             text = 'Ok'
             clicked::
                 dial.accept()
-

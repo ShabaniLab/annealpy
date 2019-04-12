@@ -33,31 +33,70 @@ enamldef DAQDialog(Dialog):
         # XXX add align to beautify this
         constraints = [vbox(
                            hbox(t_lab, t_fld, t_btn),
-                           hbox(hr_lab, hr_fld_read, hr_btn_read,
-                                hr_fld_write, hr_btn_write),
-                           )]
+                           hbox(mv_lab, mv_fld, mv_btn),
+                           hbox(mc_lab, mc_fld, mc_btn),
+                           hbox(hv_lab, hv_fld_read, hv_btn_read,
+                                hv_fld_write, hv_btn_write),
+                           hbox(hc_lab, hc_fld_read, hc_btn_read,
+                                hc_fld_write, hc_btn_write),
+                           ),
+                       ]
 
         Label: t_lab:
             text = 'Temperature (C)'
         Field: t_fld:
-            pass
+            read_only = True
         PushButton: t_btn:
             text = 'Read'
             clicked ::
                 t_fld.text = str(daq_control.read_temperature())
 
-        Label: hr_lab:
-            text = 'Heater regulation'
-        FloatField: hr_fld_read:
+        Label: mv_lab:
+            text = 'Measured heater voltage'
+        Field: mv_fld:
             pass
-        PushButton: hr_btn_read:
+        PushButton: mv_btn:
             text = 'Read'
             clicked ::
-                member = AnnealerDaq.heater_reg_state
-                hr_fld_read.value = member.do_default_value(daq_control)
-        FloatField: hr_fld_write:
+                mv_fld.text = str(daq_control.read_heater_voltage())
+
+        Label: mc_lab:
+            text = 'Measued heater current'
+        Field: mc_fld:
             pass
-        PushButton: hr_btn_write:
+        PushButton: mc_btn:
+            text = 'Read'
+            clicked ::
+                mc_fld.text = str(daq_control.read_heater_current())
+
+        Label: hv_lab:
+            text = 'Heater target voltage'
+        FloatField: hv_fld_read:
+            pass
+        PushButton: hv_btn_read:
+            text = 'Read'
+            clicked ::
+                member = AnnealerDaq.heater_volt_state
+                hv_fld_read.value = member.do_default_value(daq_control)
+        FloatField: hv_fld_write:
+            pass
+        PushButton: hv_btn_write:
             text = 'Write'
             clicked ::
-                daq_control.heater_reg_state = hr_fld_write.value
+                daq_control.heater_volt_state = hv_fld_write.value
+
+        Label: hc_lab:
+            text = 'Heater target current'
+        FloatField: hc_fld_read:
+            pass
+        PushButton: hc_btn_read:
+            text = 'Read'
+            clicked ::
+                member = AnnealerDaq.heater_curr_state
+                hc_fld_read.value = member.do_default_value(daq_control)
+        FloatField: hc_fld_write:
+            pass
+        PushButton: hc_btn_write:
+            text = 'Write'
+            clicked ::
+                daq_control.heater_curr_state = hc_fld_write.value

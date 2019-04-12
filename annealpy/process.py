@@ -77,7 +77,6 @@ class PollingThread(Thread):
 
         while True:
             channel, time, value = self._actuator_queue.get()
-            print(channel, time, value)
             if channel is None:
                 break
             else:
@@ -116,7 +115,10 @@ class ActuatorSubprocess(Process):
             self.start_time = time.time()
             # Initialize the values by forcing a notification in the queue
             self.read_temperature()
-            self.heater_reg_state = self.heater_reg_state
+            self.read_heater_voltage()
+            self.read_heater_current()
+            self.heater_curr_state = self.heater_curr_state
+            self.heater_volt_state = self.heater_volt_state
 
             for s in p.steps:
                 if self.stop_event.is_set():
@@ -125,6 +127,7 @@ class ActuatorSubprocess(Process):
 
         except Exception:
             self.crashed_event.set()
+            raise
 
         finally:
             self._daq.finalize()
@@ -138,17 +141,49 @@ class ActuatorSubprocess(Process):
         self.queue.put(('temperature', time.time() - self.start_time, temp))
         return temp
 
-    @property
-    def heater_reg_state(self):
-        """tate of the heater regulation controlled by the DAQ.
+    def read_heater_voltage(self):
+        """Read the voltage applied to the heater.
 
         """
-        return self._daq.heater_reg_state
+        val = self._daq.read_heater_voltage()
+        self.queue.put(('measured_heater_voltage',
+                        time.time() - self.start_time, val))
+        return val
 
-    @heater_reg_state.setter
-    def heater_reg_state(self, value):
-        self._daq.heater_reg_state = value
-        self.queue.put(('heater_regulation',
+    def read_heater_current(self):
+        """Read the current applied to the heater.
+
+        """
+        val = self._daq.read_heater_current()
+        self.queue.put(('measured_heater_current',
+                        time.time() - self.start_time, val))
+        return val
+
+    @property
+    def heater_volt_state(self):
+        """Target voltage for the heater regulation controlled by the DAQ.
+
+        """
+        return self._daq.heater_volt_state
+
+    @heater_volt_state.setter
+    def heater_volt_state(self, value):
+        self._daq.heater_volt_state = value
+        self.queue.put(('heater_voltage_target',
+                        time.time() - self.start_time,
+                        value))
+
+    @property
+    def heater_curr_state(self):
+        """Target current for the heater regulation controlled by the DAQ.
+
+        """
+        return self._daq.heater_curr_state
+
+    @heater_curr_state.setter
+    def heater_curr_state(self, value):
+        self._daq.heater_curr_state = value
+        self.queue.put(('heater_current_target',
                         time.time() - self.start_time,
                         value))
 
@@ -182,7 +217,7 @@ class AnnealerProcess(Atom):
             config['steps'].append(s_config)
 
         with open(path, 'w') as f:
-            json.dump(config, f)
+            json.dump(config, f, indent=4)
 
         self.path = path
 
@@ -246,7 +281,10 @@ class AnnealerProcess(Atom):
 
         #: Reset the plots data
         app_state.temperature.current_index = 0
-        app_state.heater_regulation.current_index = 0
+        app_state.measured_heater_voltage.current_index = 0
+        app_state.measured_heater_current.current_index = 0
+        app_state.heater_voltage_target.current_index = 0
+        app_state.heater_current_target.current_index = 0
 
         self._actuator = ActuatorSubprocess(self.path,
                                             app_state.get_daq_config(),

@@ -23,11 +23,15 @@ except ImportError:
 class AnnealerDaq(Atom):
     """Annealer controller through a NI-DAQ 6008.
 
-    The annealer control relies on the use of three channels:
+    The annealer control relies on the use of seven channels:
     - one input channel is used to read the temperature measured by a
       thermocouple
-    - one output channels are used to control the heater through a current
-      regulator.
+    - one pair of input/output channels are used to control the current output
+      of the power source driving the heater
+    - one input is used to monitor the actual current output of the source
+    - one pair of input/output channels are used to control the voltage output
+      of the power source driving the heater
+    - one input is used to monitor the actual voltage output of the source
 
     """
     #: Id of the NI-DAQ used to control the annealer.
@@ -35,9 +39,17 @@ class AnnealerDaq(Atom):
 
     #: Id of the channels used to control the heater current regulator.
     #: The first channel is used to read the value using single end
-    #: measurement, the second to set it.
+    #: measurement, the second to set it, the third to moinitor the actual
+    #: output.
     #: The user is responsible for setting up the proper jumper.
-    heater_reg_id = List(Str(), ['ai1', 'ao1'])
+    heater_curr_id = List(Str(), ['ai1', 'ao1', 'ai5'])
+
+    #: Id of the channels used to control the heater voltage regulator.
+    #: The first channel is used to read the value using single end
+    #: measurement, the second to set it, the third to moinitor the actual
+    #: output.
+    #: The user is responsible for setting up the proper jumper.
+    heater_volt_id = List(Str(), ['ai0', 'ao0', 'ai4'])
 
     #: Id of the channel used to read the temperature. This measurement is done
     #: using a differential channel (So in the default case ai2 is the positive
@@ -47,17 +59,33 @@ class AnnealerDaq(Atom):
 
     #: State of the heater regulator. Changing this value directly affects the
     #: hardware.
-    heater_reg_state = FloatRange(low=0.0, high=1.0)
+    heater_curr_state = FloatRange(low=0.0, high=1.0)
 
     #: Maximal value that can be used by the regulator.
-    heater_reg_max_value = FloatRange(low=0.0, high=5.0, value=5.0)
+    heater_curr_max_value = FloatRange(low=0.0, high=5.0, value=5.0)
 
     #: Minimal value that can be used by the regulator.
-    heater_reg_min_value = FloatRange(low=0.0, high=5.0)
+    heater_curr_min_value = FloatRange(low=0.0, high=5.0)
+
+    #: State of the heater regulator. Changing this value directly affects the
+    #: hardware.
+    heater_volt_state = FloatRange(low=0.0, high=1.0)
+
+    #: Maximal value that can be used by the regulator.
+    heater_volt_max_value = FloatRange(low=0.0, high=5.0, value=5.0)
+
+    #: Minimal value that can be used by the regulator.
+    heater_volt_min_value = FloatRange(low=0.0, high=5.0)
 
     def __init__(self, config: dict) -> None:
         for attr in ('device_id',
-                     'heater_reg_id', 'temperature_id'):
+                     'heater_curr_id',
+                     'heater_volt_id',
+                     'temperature_id',
+                     'heater_curr_max_value',
+                     'heater_curr_min_value',
+                     'heater_volt_max_value',
+                     'heater_volt_min_value'):
             if attr in config:
                 setattr(self, attr, config[attr])
 
@@ -71,7 +99,8 @@ class AnnealerDaq(Atom):
                              f' exist. Existing devices are {list(devices)}')
 
         # Create one task per channel we need to control.
-        for task_id, ch_id in [('heater_reg', 'heater_reg_id'),
+        for task_id, ch_id in [('heater_curr', 'heater_curr_id'),
+                               ('heater_volt', 'heater_volt_id'),
                                ('temperature', 'temperature_id')]:
 
             if task_id == 'temperature':
@@ -82,10 +111,10 @@ class AnnealerDaq(Atom):
                 task.ai_channels.add_ai_voltage_chan(full_id,
                                                      terminal_config=mode)
             else:
-                tasks = (nidaqmx.Task(), nidaqmx.Task())
+                tasks = (nidaqmx.Task(), nidaqmx.Task(), nidaqmx.Task())
                 self._tasks[task_id] = tasks
 
-                # Input channel
+                # Input channel to monitor the set value
                 full_id = self.device_id + '/' + getattr(self, ch_id)[0]
                 mode = nidaqmx.constants.TerminalConfiguration.RSE
                 tasks[0].ai_channels.add_ai_voltage_chan(full_id,
@@ -97,6 +126,12 @@ class AnnealerDaq(Atom):
                                                          min_val=0,
                                                          max_val=5)
 
+                # Input channel to monitor the actual value
+                full_id = self.device_id + '/' + getattr(self, ch_id)[2]
+                mode = nidaqmx.constants.TerminalConfiguration.RSE
+                tasks[2].ai_channels.add_ai_voltage_chan(full_id,
+                                                         terminal_config=mode)
+
     def finalize(self) -> None:
         for t in self._tasks.values():
             if isinstance(t, (tuple, list)):
@@ -104,6 +139,38 @@ class AnnealerDaq(Atom):
                     st.close()
             else:
                 t.close()
+
+    def read_heater_voltage(self) -> float:
+        """Read the heater current output (may differ from the set target).
+
+        """
+        if not nidaqmx:
+            return 0
+
+        if 'temperature' not in self._tasks:
+            msg = ('The connection to the DAQ must be established prior to '
+                   'reading the heater voltage by calling `initialize`')
+            raise RuntimeError(msg)
+
+        value = self._tasks['heater_volt'][2].read()
+
+        return self._convert_heater_volt(value)
+
+    def read_heater_current(self) -> float:
+        """Read the heater current output (may differ from the set target).
+
+        """
+        if not nidaqmx:
+            return 0
+
+        if 'temperature' not in self._tasks:
+            msg = ('The connection to the DAQ must be established prior to '
+                   'reading the heater current by calling `initialize`')
+            raise RuntimeError(msg)
+
+        value = self._tasks['heater_curr'][2].read()
+
+        return self._convert_heater_current(value)
 
     def read_temperature(self) -> float:
         """Read the temperature measured by the DAQ.
@@ -129,40 +196,91 @@ class AnnealerDaq(Atom):
     #: NiDAQ tasks used to control the physical DAQ
     _tasks = Dict(Str())
 
-    def _default_heater_reg_state(self) -> float:
+    def _convert_heater_current(self, value: float) -> float:
+        """Convert the DAQ value into a fraction of the allowed range.
+
+        """
+        span = self.heater_curr_max_value - self.heater_curr_min_value
+        return round((value - self.heater_curr_min_value) / span, 2)
+
+    def _convert_heater_volt(self, value: float) -> float:
+        """Convert the DAQ value into a fraction of the allowed range.
+
+        """
+        span = self.heater_volt_max_value - self.heater_volt_min_value
+        return round((value - self.heater_volt_min_value) / span, 2)
+
+    def _default_heater_curr_state(self) -> float:
         """Get the value from the DAQ on first read.
 
         """
         if not nidaqmx:
             return 0.0
 
-        if 'heater_reg' not in self._tasks:
+        if 'heater_curr' not in self._tasks:
             msg = ('The connection to the DAQ must be established prior to '
                    'reading the heater regulator stqte by calling `initialize`'
                    )
             raise RuntimeError(msg)
 
-        value = self._tasks['heater_reg'][0].read()
-        return round(((value - self.heater_reg_min_value) /
-                     (self.heater_reg_max_value - self.heater_reg_min_value)),
+        value = self._tasks['heater_curr'][0].read()
+        return self._convert_heater_current(value)
+
+
+    def _default_heater_volt_state(self) -> float:
+        """Get the value from the DAQ on first read.
+
+        """
+        if not nidaqmx:
+            return 0.0
+
+        if 'heater_volt' not in self._tasks:
+            msg = ('The connection to the DAQ must be established prior to '
+                   'reading the heater regulator stqte by calling `initialize`'
+                   )
+            raise RuntimeError(msg)
+
+        value = self._tasks['heater_volt'][0].read()
+        return round(((value - self.heater_volt_min_value) /
+                     (self.heater_volt_max_value - self.heater_volt_min_value)),
                      2)
 
-    def _post_validate_heater_reg_state(self,
-                                        old: Optional[float],
-                                        new: float):
+    def _post_validate_heater_curr_state(self,
+                                         old: Optional[float],
+                                         new: float):
         """Try to update the DAQ when a valid value is passed.
 
         """
         if not nidaqmx:
             return new
 
-        if 'heater_reg' not in self._tasks:
+        if 'heater_curr' not in self._tasks:
             msg = ('The connection to the DAQ must be established prior to '
                    'writing the heater regulator state by calling `initialize`'
                    )
             raise RuntimeError(msg)
 
-        value = (new*(self.heater_reg_max_value - self.heater_reg_min_value) +
-                 self.heater_reg_min_value)
-        self._tasks['heater_reg'][1].write(value)
+        value = (new*(self.heater_curr_max_value - self.heater_curr_min_value) +
+                 self.heater_curr_min_value)
+        self._tasks['heater_curr'][1].write(value)
+        return new
+
+    def _post_validate_heater_volt_state(self,
+                                         old: Optional[float],
+                                         new: float):
+        """Try to update the DAQ when a valid value is passed.
+
+        """
+        if not nidaqmx:
+            return new
+
+        if 'heater_volt' not in self._tasks:
+            msg = ('The connection to the DAQ must be established prior to '
+                   'writing the heater regulator state by calling `initialize`'
+                   )
+            raise RuntimeError(msg)
+
+        value = (new*(self.heater_volt_max_value - self.heater_volt_min_value) +
+                 self.heater_volt_min_value)
+        self._tasks['heater_volt'][1].write(value)
         return new

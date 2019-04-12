@@ -12,7 +12,7 @@
 from enaml.layout.api import hbox, vbox, spacer
 from enaml.widgets.api import DockItem, Container, CheckBox
 
-from .pyqtgraph_widget import DualAxisPyqtGraphWidget
+from .pyqtgraph_widget import PyqtGraphWidget
 
 
 enamldef PlottingDockItem(DockItem): main:
@@ -27,7 +27,10 @@ enamldef PlottingDockItem(DockItem): main:
 
     activated::
         temp_plot.add_plot('temperature')
-        heater_plot.add_plot('heater_regulation')
+        heater_plot.add_plot('measured_heater_voltage')
+        heater_plot.add_plot('measured_heater_current')
+        heater_plot.add_plot('heater_voltage_target')
+        heater_plot.add_plot('heater_current_target')
         app_state.observe('plot_update', temp_plot._update_plots)
         app_state.observe('plot_update', heater_plot._update_plots)
 
@@ -35,32 +38,57 @@ enamldef PlottingDockItem(DockItem): main:
 
         constraints << ([vbox(temp_plot.when(temp_plot.visible),
                               heater_plot.when(heater_plot.visible),
-                              hbox(t_ch, spacer, r_ch))
+                              hbox(t_ch, spacer, tv_ch, tc_ch, mv_ch, mc_ch))
                          ] +
                          ([temp_plot.height == heater_plot.height]
                            if temp_plot.visible and heater_plot.visible else
                            [])
                         )
 
-        DualAxisPyqtGraphWidget: temp_plot:
+        PyqtGraphWidget: temp_plot:
             app_state = main.app_state
             visible << t_ch.checked
             colors << app_state.plot_colors
 
-        DualAxisPyqtGraphWidget: heater_plot:
+        PyqtGraphWidget: heater_plot:
             app_state = main.app_state
-            visible << r_ch.checked
+            visible << any((tv_ch.checked, tc_ch.checked,
+                            mv_ch.checked, mc_ch.checked))
             colors << app_state.plot_colors
 
         CheckBox: t_ch:
             text = 'Temperature'
             checked = True
 
-        CheckBox: r_ch:
-            text = 'Heater regulation'
+        CheckBox: tv_ch:
+            text = 'Heater target voltage'
             checked = True
             toggled::
                 if checked:
-                    plot.add_plot('heater_regulation')
+                    heater_plot.add_plot('heater_voltage_target')
                 else:
-                    plot.remove_plot('heater_regulation')
+                    heater_plot.remove_plot('heater_voltage_target')
+        CheckBox: tc_ch:
+            text = 'Heater target current'
+            checked = True
+            toggled::
+                if checked:
+                    heater_plot.add_plot('heater_current_target')
+                else:
+                    heater_plot.remove_plot('heater_current_target')
+        CheckBox: mv_ch:
+            text = 'Heater measured voltage'
+            checked = True
+            toggled::
+                if checked:
+                    heater_plot.add_plot('measured_heater_voltage')
+                else:
+                    heater_plot.remove_plot('measured_heater_voltage')
+        CheckBox: mc_ch:
+            text = 'Heater measured current'
+            checked = True
+            toggled::
+                if checked:
+                    heater_plot.add_plot('measured_heater_current')
+                else:
+                    heater_plot.remove_plot('measured_heater_current')

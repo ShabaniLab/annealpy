@@ -127,8 +127,12 @@ class ApplicationState(Atom):
     plot_refresh_interval = Float(2).tag(pref=True)
 
     #: Plot colors.
-    plot_colors = Typed(dict, ({'temperature': '#f9f9f9',
-                                'heater_regulation': '#59c3b1'},)
+    plot_colors = Typed(dict, ({"temperature": "#ffffff",
+                                "measured_heater_voltage": "#00aa00",
+                                "measured_heater_current": "#55ffff",
+                                "heater_voltage_target": "#ff0000",
+                                "heater_current_target": "#ffaa00",
+                                },)
                         ).tag(pref=True)
 
     #: Process being edited/run
@@ -137,8 +141,19 @@ class ApplicationState(Atom):
     #: Measured temperature over time
     temperature = Typed(ChannelStatus, (np.float, 'continuous', 36000))
 
-    #: Measured temperature over time
-    heater_regulation = Typed(ChannelStatus, (np.float, 'stepped', 10000))
+    #: Applied voltage on the heater over time.
+    measured_heater_voltage = Typed(ChannelStatus,
+                                    (np.float, 'continuous', 36000))
+
+    #: Applied current on the heater over time.
+    measured_heater_current = Typed(ChannelStatus,
+                                    (np.float, 'continuous', 36000))
+
+    #: Target/Max heater voltage applied on the heater.
+    heater_voltage_target = Typed(ChannelStatus, (np.float, 'stepped', 10000))
+
+    #: Target/Max heater current applied on the heater.
+    heater_current_target = Typed(ChannelStatus, (np.float, 'stepped', 10000))
 
     #: Event signaling the plot should be updated.
     plot_update = Event()
@@ -177,7 +192,7 @@ class ApplicationState(Atom):
                 config[name] = getattr(self, name)
         path = os.path.join(os.path.dirname(__file__), 'config.json')
         with open(path, 'w') as f:
-            json.dump(config, f)
+            json.dump(config, f, indent=4)
 
     def get_daq_config(self):
         """Load the daq configuration.
@@ -227,6 +242,12 @@ class ApplicationState(Atom):
 
     def _post_setattr_plot_refresh_interval(self, old, new):
         """Save the app state when the user change the plot refresh interval.
+
+        """
+        self.save_app_state()
+
+    def _post_setattr_plot_colors(self, old, new):
+        """Save the app state when the user change the plot colors.
 
         """
         self.save_app_state()

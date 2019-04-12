@@ -57,8 +57,10 @@ class PIDRegulatedStep(BaseStep):
             if stop - current_time < 0 or actuator.stop_event.is_set():
                 break
 
+            actuator.read_heater_voltage()
+            actuator.read_heater_current()
             temp = actuator.read_temperature()
             feedback = pid.compute_new_output(current_time, temp)
-            actuator.heater_reg_state = max(0.0, min(feedback, 1.0))
+            actuator.heater_curr_state = max(0.0, min(feedback, 1.0))
 
             time.sleep(min(self.interval, stop - current_time))

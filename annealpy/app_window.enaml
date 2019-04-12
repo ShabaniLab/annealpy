@@ -43,6 +43,7 @@ enamldef AppWindow(MainWindow): main:
                     dial.exec_()
                     if dial.result:
                         p = dial.preferences
+                        print(p)
                         app_state.daq_config_path = p['daq_config_path']
                         app_state.plot_refresh_interval =\
                             p['plot_refresh_interval']
@@ -67,6 +68,7 @@ enamldef AppWindow(MainWindow): main:
             title = 'DAQ'
             Action:
                 text = 'Select config file'
+                enabled = False
                 triggered::
                     pass
             Action:
