@@ -62,7 +62,7 @@ class AnnealerDaq(Atom):
     heater_curr_state = FloatRange(low=0.0, high=1.0)
 
     #: Maximal value that can be used by the regulator.
-    heater_curr_max_value = FloatRange(low=0.0, high=5.0, value=5.0)
+    heater_curr_max_value = FloatRange(low=0.0, high=5.0, value=2.6)
 
     #: Minimal value that can be used by the regulator.
     heater_curr_min_value = FloatRange(low=0.0, high=5.0)
@@ -72,7 +72,7 @@ class AnnealerDaq(Atom):
     heater_volt_state = FloatRange(low=0.0, high=1.0)
 
     #: Maximal value that can be used by the regulator.
-    heater_volt_max_value = FloatRange(low=0.0, high=5.0, value=5.0)
+    heater_volt_max_value = FloatRange(low=0.0, high=5.0, value=1.5)
 
     #: Minimal value that can be used by the regulator.
     heater_volt_min_value = FloatRange(low=0.0, high=5.0)

@@ -3,9 +3,9 @@
     "heater_curr_id": ["ai1", "ao1", "ai4"],
     "heater_volt_id":  ["ai0", "ao0", "ai5"],
     "temperature_id": "ai2",
-    "heater_curr_max_value": 5.0,
+    "heater_curr_max_value": 2.6,
     "heater_curr_min_value": 0.0,
-    "heater_volt_max_value": 5.0,
+    "heater_volt_max_value": 1.5,
     "heater_volt_min_value": 0.0,
     "temperature_conversion": {
     }
