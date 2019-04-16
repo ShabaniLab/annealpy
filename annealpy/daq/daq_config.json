@@ -7,6 +7,8 @@
     "heater_curr_min_value": 0.0,
     "heater_volt_max_value": 1.5,
     "heater_volt_min_value": 0.0,
+    "temperature_min_volt": 0.0,
+    "temperature_max_volt": 0.03,
     "temperature_conversion":
     {
         "type": "k-thermocouple",

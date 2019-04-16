@@ -80,6 +80,12 @@ class AnnealerDaq(Atom):
     #: Minimal value that can be used by the regulator.
     heater_volt_min_value = FloatRange(low=0.0, high=5.0)
 
+    #: Minimal voltage expected to be measured by the temperature sensor
+    temperature_min_volt = FloatRange(low=-5, high=5.0)
+
+    #: Maximal voltage expected to be measured by the temperature sensor
+    temperature_max_volt = FloatRange(low=-5, high=5.0)
+
     def __init__(self, config: dict) -> None:
         for attr in ('device_id',
                      'heater_curr_id',
@@ -88,7 +94,9 @@ class AnnealerDaq(Atom):
                      'heater_curr_max_value',
                      'heater_curr_min_value',
                      'heater_volt_max_value',
-                     'heater_volt_min_value'):
+                     'heater_volt_min_value',
+                     'temperature_min_volt',
+                     'temperature_max_volt'):
             if attr in config:
                 setattr(self, attr, config[attr])
 
@@ -117,8 +125,10 @@ class AnnealerDaq(Atom):
                 task = nidaqmx.Task()
                 self._tasks[task_id] = task
                 mode = nidaqmx.constants.TerminalConfiguration.DIFFERENTIAL
-                task.ai_channels.add_ai_voltage_chan(full_id,
-                                                     terminal_config=mode)
+                task.ai_channels.add_ai_voltage_chan(
+                    full_id, terminal_config=mode,
+                    min_val=self.temperature_min_volt,
+                    max_val=self.temperature_max_volt)
             else:
                 tasks = (nidaqmx.Task(), nidaqmx.Task(), nidaqmx.Task())
                 self._tasks[task_id] = tasks
@@ -323,7 +333,7 @@ class AnnealerDaq(Atom):
                 temp_conv_config['thermocouple'] = json.load(f)
 
         c_def = ['def converter(voltage: float) -> float:',
-                 f'    x = voltage*1e-3 - {temp_conv_config["Vref"]}']
+                 f'    x = voltage*1e3 - {temp_conv_config["Vref"]}']
 
         therm = temp_conv_config['thermocouple']
 
