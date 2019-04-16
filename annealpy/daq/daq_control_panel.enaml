@@ -21,6 +21,8 @@ enamldef DAQDialog(Dialog):
     attr daq_config : dict = {}
     attr daq_control
 
+    title = 'DAQ test panel'
+
     initialized::
         self.daq_control = AnnealerDaq(daq_config)
         self.daq_control.initialize()

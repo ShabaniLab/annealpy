@@ -1,7 +1,7 @@
 {
     "device_id": "Dev1",
-    "heater_curr_id": ["ai1", "ao1", "ai4"],
-    "heater_volt_id":  ["ai0", "ao0", "ai5"],
+    "heater_curr_id": ["ai1", "ao1", "ai5"],
+    "heater_volt_id":  ["ai0", "ao0", "ai4"],
     "temperature_id": "ai2",
     "heater_curr_max_value": 2.6,
     "heater_curr_min_value": 0.0,

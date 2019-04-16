@@ -64,6 +64,8 @@ enamldef AppPreferencesDialog(Dialog): dial:
     #: accepted.
     attr preferences : dict
 
+    title = 'Application preferences'
+
     accepted::
         colors = {'temperature': t_col.color,
                   'measured_heater_voltage': mv_col.color,

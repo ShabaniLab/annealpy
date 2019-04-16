@@ -13,6 +13,7 @@ import os
 import json
 from typing import Optional
 
+import numpy as np
 from atom.api import (Atom, Bool, Callable, Dict, Float, FloatRange, List, Str,
                       Typed)
 
@@ -171,7 +172,7 @@ class AnnealerDaq(Atom):
                    'reading the heater voltage by calling `initialize`')
             raise RuntimeError(msg)
 
-        value = self._tasks['heater_volt'][2].read()
+        value = np.average(self._tasks['heater_volt'][2].read(1024))
 
         return self._convert_heater_volt(value)
 
@@ -187,7 +188,7 @@ class AnnealerDaq(Atom):
                    'reading the heater current by calling `initialize`')
             raise RuntimeError(msg)
 
-        value = self._tasks['heater_curr'][2].read()
+        value = np.average(self._tasks['heater_curr'][2].read(1024))
 
         return self._convert_heater_current(value)
 
@@ -203,7 +204,7 @@ class AnnealerDaq(Atom):
                    'reading the temperature by calling `initialize`')
             raise RuntimeError(msg)
 
-        temp_volt = self._tasks['temperature'].read()
+        temp_volt = np.average(self._tasks['temperature'].read(1024))
 
         temperature = self._convert_temp(temp_volt)
 
@@ -244,7 +245,7 @@ class AnnealerDaq(Atom):
                    )
             raise RuntimeError(msg)
 
-        value = self._tasks['heater_curr'][0].read()
+        value = np.average(self._tasks['heater_curr'][0].read(1024))
         return self._convert_heater_current(value)
 
 
@@ -261,7 +262,7 @@ class AnnealerDaq(Atom):
                    )
             raise RuntimeError(msg)
 
-        value = self._tasks['heater_volt'][0].read()
+        value = np.average(self._tasks['heater_volt'][0].read(1024))
         return round(((value - self.heater_volt_min_value) /
                      (self.heater_volt_max_value - self.heater_volt_min_value)),
                      2)
