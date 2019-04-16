@@ -9,9 +9,12 @@
 """Wrapper around NiDAQmx to control the annealer.
 
 """
+import os
+import json
 from typing import Optional
 
-from atom.api import Atom, Bool, Dict, Float, Str, Typed, FloatRange, List
+from atom.api import (Atom, Bool, Callable, Dict, Float, FloatRange, List, Str,
+                      Typed)
 
 try:
     import nidaqmx
@@ -88,6 +91,12 @@ class AnnealerDaq(Atom):
                      'heater_volt_min_value'):
             if attr in config:
                 setattr(self, attr, config[attr])
+
+        if "temperature_conversion" in config:
+            self._create_converter(config['temperature_conversion'])
+        else:
+            raise ValueError("No temperature conversion specified in the DAQ "
+                             f"config file. Content is {config}")
 
     def initialize(self) -> None:
         if nidaqmx is None:
@@ -186,8 +195,7 @@ class AnnealerDaq(Atom):
 
         temp_volt = self._tasks['temperature'].read()
 
-        # XXX do conversion
-        temperature = temp_volt
+        temperature = self._convert_temp(temp_volt)
 
         return temperature
 
@@ -195,6 +203,9 @@ class AnnealerDaq(Atom):
 
     #: NiDAQ tasks used to control the physical DAQ
     _tasks = Dict(Str())
+
+    #: Temperature conversion function.
+    _convert_temp = Callable()
 
     def _convert_heater_current(self, value: float) -> float:
         """Convert the DAQ value into a fraction of the allowed range.
@@ -284,3 +295,65 @@ class AnnealerDaq(Atom):
                  self.heater_volt_min_value)
         self._tasks['heater_volt'][1].write(value)
         return new
+
+    def _create_converter(self, temp_conv_config: dict) -> None:
+        """Create a temperature conversion function based on the configuration.
+
+        Parameters
+        ----------
+        temp_conv_config : dict
+            Configuration for the conversion function. Expected keys are:
+            - Vref: voltage of the reference part of the thermocouple
+            - type: Thermocouple type which should refer to a file in the
+                    thermocouples folder. Should be omitted if a custom
+                    thermocouple is used.
+            - thermocouple: a complete thermocouple description (refers to
+                            thermocouples/README for a detailed description)
+
+        """
+        if "type" in temp_conv_config:
+            dirname = os.path.dirname(__file__)
+            path = os.path.join(dirname,
+                                'thermocouples',
+                                temp_conv_config['type'] + '.json')
+            if not os.path.isfile(path):
+                raise ValueError('Specified thermocouple file does not exist.'
+                                 f'Full path: {path}')
+            with open(path) as f:
+                temp_conv_config['thermocouple'] = json.load(f)
+
+        c_def = ['def converter(voltage: float) -> float:',
+                 f'    x = voltage*1e-3 - {temp_conv_config["Vref"]}']
+
+        therm = temp_conv_config['thermocouple']
+
+        def poly_conversion(coeffs):
+            i = 0
+            value = '0 '
+            while True:
+                key = f'C{i}'
+                if key not in coeffs:
+                    break
+                value += f'+ {coeffs[key]}*x**{i}'
+                i += 1
+            return value
+
+        # No validity range:
+        if 'C0' in therm:
+            c_def.append('    return ' + poly_conversion(therm))
+
+        # We have multiple range
+        else:
+            for key in therm:
+                low, high = key.split(',')
+                c_def.append(f'    if x > {low} and x < {high}:')
+                c_def.append(f'        return {poly_conversion(therm[key])}')
+            c_def.extend(('    else:',
+                          '        ' +
+                          'raise ValueError(f"No matching range for {x}")'
+                          )
+                         )
+
+        glob = {}
+        exec('\n'.join(c_def), glob)
+        self._convert_temp = glob['converter']

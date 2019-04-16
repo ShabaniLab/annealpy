@@ -74,7 +74,8 @@ enamldef AppWindow(MainWindow): main:
             Action:
                 text = 'Open test dialog'
                 triggered::
-                    DAQDialog(main).exec_()
+                    DAQDialog(main,
+                              daq_config=app_state.get_daq_config()).exec_()
 
     StatusBar: status:
         pass
