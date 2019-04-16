@@ -81,10 +81,10 @@ class AnnealerDaq(Atom):
     heater_volt_min_value = FloatRange(low=0.0, high=5.0)
 
     #: Minimal voltage expected to be measured by the temperature sensor
-    temperature_min_volt = FloatRange(low=-5, high=5.0)
+    temperature_min_volt = FloatRange(low=-5.0, high=5.0)
 
     #: Maximal voltage expected to be measured by the temperature sensor
-    temperature_max_volt = FloatRange(low=-5, high=5.0)
+    temperature_max_volt = FloatRange(low=-5.0, high=5.0)
 
     def __init__(self, config: dict) -> None:
         for attr in ('device_id',
