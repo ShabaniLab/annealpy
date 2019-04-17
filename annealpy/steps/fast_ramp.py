@@ -93,6 +93,6 @@ class FastRamp(BaseStep):
             actuator.read_heater_current()
             temp = actuator.read_temperature()
             feedback = pid.compute_new_output(current_time, temp)
-            actuator.heater_reg_state = max(0.0, min(feedback, 1.0))
+            actuator.heater_curr_state = max(0.0, min(feedback, 1.0))
 
             time.sleep(min(self.pid_interval, stop - current_time))
