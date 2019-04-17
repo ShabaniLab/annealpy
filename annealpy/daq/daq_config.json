@@ -12,6 +12,6 @@
     "temperature_conversion":
     {
         "type": "k-thermocouple",
-        "Vref": 0
+        "Vref": 0.798
     }
 }

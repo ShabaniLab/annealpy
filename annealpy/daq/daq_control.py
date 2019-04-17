@@ -334,7 +334,7 @@ class AnnealerDaq(Atom):
                 temp_conv_config['thermocouple'] = json.load(f)
 
         c_def = ['def converter(voltage: float) -> float:',
-                 f'    x = voltage*1e3 - {temp_conv_config["Vref"]}']
+                 f'    x = voltage*1e3 + {temp_conv_config["Vref"]}']
 
         therm = temp_conv_config['thermocouple']
 
