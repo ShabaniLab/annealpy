@@ -18,3 +18,11 @@ enamldef StopHeatingStepView(GroupBox):
     attr step
 
     title = "Stop heating"
+
+    constraints = [hbox(lt_lab, lt_val)]
+
+    Label: lt_lab:
+        text = 'Low temperature'
+    FloatField: lt_val:
+        value := step.low_temperature
+        tool_tip = 'Wait till the temperature goes below this threshold'
